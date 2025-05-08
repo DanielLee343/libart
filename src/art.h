@@ -1,4 +1,9 @@
 #include <stdint.h>
+#include <stddef.h>
+#include <numa.h>
+#include <numaif.h>
+#include <sys/mman.h>
+#include <memkind.h>
 #ifndef ART_H
 #define ART_H
 
@@ -10,6 +15,16 @@ extern "C" {
 #define NODE16  2
 #define NODE48  3
 #define NODE256 4
+void* slab_base;
+void* bump_ptr;
+void* node256_base;
+void* node256_ptr;
+void* node48_base;
+void* node48_ptr;
+void* node16_base;
+void* node16_ptr;
+void* node4_base;
+void* node4_ptr;
 
 #define MAX_PREFIX_LEN 10
 
@@ -44,6 +59,7 @@ typedef struct {
     art_node n;
     unsigned char keys[4];
     art_node *children[4];
+    int depth;
 } art_node4;
 
 /**
@@ -53,6 +69,7 @@ typedef struct {
     art_node n;
     unsigned char keys[16];
     art_node *children[16];
+    int depth;
 } art_node16;
 
 /**
@@ -63,6 +80,7 @@ typedef struct {
     art_node n;
     unsigned char keys[256];
     art_node *children[48];
+    int depth;
 } art_node48;
 
 /**
@@ -71,6 +89,7 @@ typedef struct {
 typedef struct {
     art_node n;
     art_node *children[256];
+    int depth;
 } art_node256;
 
 /**
@@ -80,6 +99,7 @@ typedef struct {
 typedef struct {
     void *value;
     uint32_t key_len;
+    uint32_t alloc_len;
     unsigned char key[];
 } art_leaf;
 
@@ -208,6 +228,38 @@ int art_iter(art_tree *t, art_callback cb, void *data);
  */
 int art_iter_prefix(art_tree *t, const unsigned char *prefix, int prefix_len, art_callback cb, void *data);
 
+unsigned long node4_cnt=0;
+unsigned long node16_cnt=0;
+unsigned long node48_cnt=0;
+unsigned long node256_cnt=0;
+unsigned long leaf_cnt=0;
+
+typedef struct {
+    size_t node4_depth_total;
+    size_t node4_count;
+
+    size_t node16_depth_total;
+    size_t node16_count;
+
+    size_t node48_depth_total;
+    size_t node48_count;
+
+    size_t node256_depth_total;
+    size_t node256_count;
+} node_depth_stats_t;
+void node_cnt_stat();
+void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats);
+void print_avg_node_depths(const node_depth_stats_t *s);
+int check_numa_node(void *addr);
+size_t num_unmatch = 0;
+size_t total_leaf_count = 0;
+FILE *dbg_fd;
+#define LEAF_ALIGN 16
+#define ALIGN_UP(ptr, align) ((void *)(((uintptr_t)(ptr) + ((align)-1)) & ~((align)-1)))
+#define ALIGN_UP_SIZE(size, align) (((size) + ((align)-1)) & ~((align)-1))
+struct memkind *leaf_kind = NULL;
+void *leaf_base = NULL;
+size_t total_leaf_size;
 #ifdef __cplusplus
 }
 #endif
