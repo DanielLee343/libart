@@ -1,0 +1,937 @@
+========== Building node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node256 tests ==========
+
+========= starting email_workloada_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 50.31
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 142.69
+
+========= starting email_workloadb_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 50.37
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 144.00
+
+========= starting email_workloadc_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 50.32
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 141.45
+
+========= starting email_workloadd_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 50.27
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 73.19
+
+========= starting email_workloadla_node256 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE256_CXL enabled
+insert: 3.54
+# found: 0, total_val: 0
+ops_ms: 93.22
+
+========= starting randint_workloada_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 98.04
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 109.82
+
+========= starting randint_workloadb_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 98.00
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 106.08
+
+========= starting randint_workloadc_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 98.02
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 104.22
+
+========= starting  randint_workloadd_node256 ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+NODE256_CXL enabled
+insert: 25.15
+# found: 0, total_val: 0
+ops_ms: 1.32
+
+========= starting randint_workloadla_node256 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE256_CXL enabled
+insert: 5.81
+# found: 0, total_val: 0
+ops_ms: 219.52
+
+========== Building leaf ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DLEAF_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running leaf tests ==========
+
+========= starting email_workloada_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 53.02
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 150.13
+
+========= starting email_workloadb_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 53.06
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 151.74
+
+========= starting email_workloadc_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 53.08
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 149.18
+
+========= starting email_workloadd_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 53.10
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 76.56
+
+========= starting email_workloadla_leaf ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL enabled
+insert: 3.67
+# found: 0, total_val: 0
+ops_ms: 98.31
+
+========= starting randint_workloada_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 102.26
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 118.39
+
+========= starting randint_workloadb_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 102.36
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 114.59
+
+========= starting randint_workloadc_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 102.34
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 112.76
+
+========= starting  randint_workloadd_leaf ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+LEAF_CXL enabled
+insert: 25.94
+# found: 0, total_val: 0
+ops_ms: 1.36
+
+========= starting randint_workloadla_leaf ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL enabled
+insert: 6.16
+# found: 0, total_val: 0
+ops_ms: 228.71
+
+========== Building base ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3  -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running base tests ==========
+
+========= starting email_workloada_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 50.27
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 142.96
+
+========= starting email_workloadb_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 50.20
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 144.13
+
+========= starting email_workloadc_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 50.20
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 141.61
+
+========= starting email_workloadd_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 50.17
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 73.11
+
+========= starting email_workloadla_base ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+insert: 3.54
+# found: 0, total_val: 0
+ops_ms: 92.95
+
+========= starting randint_workloada_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 98.04
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 109.80
+
+========= starting randint_workloadb_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 98.08
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 106.12
+
+========= starting randint_workloadc_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 98.02
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 104.26
+
+========= starting  randint_workloadd_base ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_base ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+insert: 25.20
+# found: 0, total_val: 0
+ops_ms: 1.33
+
+========= starting randint_workloadla_base ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+insert: 5.80
+# found: 0, total_val: 0
+ops_ms: 219.58
+
+========== Building node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE48_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node48 tests ==========
+
+========= starting email_workloada_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 51.78
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 160.11
+
+========= starting email_workloadb_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 51.63
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 161.62
+
+========= starting email_workloadc_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 51.70
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 158.90
+
+========= starting email_workloadd_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 51.69
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 78.59
+
+========= starting email_workloadla_node48 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE48_CXL enabled
+insert: 3.56
+# found: 0, total_val: 0
+ops_ms: 96.21
+
+========= starting randint_workloada_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 98.07
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 109.92
+
+========= starting randint_workloadb_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 98.05
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 106.10
+
+========= starting randint_workloadc_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 98.05
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 104.20
+
+========= starting  randint_workloadd_node48 ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+NODE48_CXL enabled
+insert: 25.13
+# found: 0, total_val: 0
+ops_ms: 1.32
+
+========= starting randint_workloadla_node48 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE48_CXL enabled
+insert: 5.81
+# found: 0, total_val: 0
+ops_ms: 219.33
+
+========== Building cxl ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DLEAF_CXL=1 -DNODE4_CXL=1 -DNODE16_CXL=1 -DNODE48_CXL=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running cxl tests ==========
+
+========= starting email_workloada_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 58.48
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 185.22
+
+========= starting email_workloadb_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 58.54
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 186.99
+
+========= starting email_workloadc_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 58.52
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 184.43
+
+========= starting email_workloadd_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 58.56
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 89.89
+
+========= starting email_workloadla_cxl ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 3.80
+# found: 0, total_val: 0
+ops_ms: 112.17
+
+========= starting randint_workloada_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 126.41
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 144.91
+
+========= starting randint_workloadb_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 126.42
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 139.87
+
+========= starting randint_workloadc_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 126.37
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 137.93
+
+========= starting  randint_workloadd_cxl ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 26.34
+# found: 0, total_val: 0
+ops_ms: 1.38
+
+========= starting randint_workloadla_cxl ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 7.76
+# found: 0, total_val: 0
+ops_ms: 288.23
+
+========== Building node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE16_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node16 tests ==========
+
+========= starting email_workloada_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 51.73
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 150.13
+
+========= starting email_workloadb_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 51.72
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 151.67
+
+========= starting email_workloadc_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 51.72
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 149.23
+
+========= starting email_workloadd_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 51.72
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 76.29
+
+========= starting email_workloadla_node16 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE16_CXL enabled
+insert: 3.59
+# found: 0, total_val: 0
+ops_ms: 96.45
+
+========= starting randint_workloada_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 115.16
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 130.16
+
+========= starting randint_workloadb_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 115.52
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 125.60
+
+========= starting randint_workloadc_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 115.42
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 123.83
+
+========= starting  randint_workloadd_node16 ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+NODE16_CXL enabled
+insert: 25.64
+# found: 0, total_val: 0
+ops_ms: 1.35
+
+========= starting randint_workloadla_node16 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE16_CXL enabled
+insert: 6.46
+# found: 0, total_val: 0
+ops_ms: 259.47
+
+========== Building node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE4_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node4 tests ==========
+
+========= starting email_workloada_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 52.64
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 151.17
+
+========= starting email_workloadb_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 52.65
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 152.54
+
+========= starting email_workloadc_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 52.64
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 149.94
+
+========= starting email_workloadd_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 52.72
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 76.91
+
+========= starting email_workloadla_node4 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE4_CXL enabled
+insert: 3.62
+# found: 0, total_val: 0
+ops_ms: 98.74
+
+========= starting randint_workloada_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 104.73
+# found: 59989714, total_val: 3364090700286473
+ops_ms: 116.13
+
+========= starting randint_workloadb_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 104.66
+# found: 114000902, total_val: 6784666462969371
+ops_ms: 112.30
+
+========= starting randint_workloadc_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 104.71
+# found: 120000000, total_val: 7200491711665513
+ops_ms: 110.41
+
+========= starting  randint_workloadd_node4 ==========
+3
+fopen input file failed: No such file or directory
+
+========= starting randint_workloade_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 5999064 ops
+NODE4_CXL enabled
+insert: 25.12
+# found: 0, total_val: 0
+ops_ms: 1.32
+
+========= starting randint_workloadla_node4 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+NODE4_CXL enabled
+insert: 6.45
+# found: 0, total_val: 0
+ops_ms: 235.35
+
+
+run all build for randint_workloadd:
+========== Building node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node256 tests ==========
+
+========= starting randint_workloadd_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE256_CXL enabled
+insert: 98.15
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 72.43
+
+========== Building leaf ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DLEAF_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running leaf tests ==========
+
+========= starting randint_workloadd_leaf ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+insert: 102.28
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 76.11
+
+========== Building base ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3  -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running base tests ==========
+
+========= starting randint_workloadd_base ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 98.12
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 72.46
+
+========== Building node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE48_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node48 tests ==========
+
+========= starting randint_workloadd_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE48_CXL enabled
+insert: 98.10
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 72.46
+
+========== Building cxl ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DLEAF_CXL=1 -DNODE4_CXL=1 -DNODE16_CXL=1 -DNODE48_CXL=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running cxl tests ==========
+
+========= starting randint_workloadd_cxl ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL enabled
+NODE4_CXL enabled
+NODE16_CXL enabled
+NODE48_CXL enabled
+NODE256_CXL enabled
+insert: 126.40
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 90.93
+
+========== Building node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE16_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node16 tests ==========
+
+========= starting randint_workloadd_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE16_CXL enabled
+insert: 115.31
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 83.26
+
+========== Building node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3 -DNODE4_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running node4 tests ==========
+
+========= starting randint_workloadd_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+NODE4_CXL enabled
+insert: 104.66
+# found: 114003179, total_val: 7476239963669230
+ops_ms: 75.97

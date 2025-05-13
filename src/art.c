@@ -14,19 +14,30 @@
 #endif
 
 #define PAGE_SIZE 4096
-#define INIT_LEAF_COUNT 100000
-#define NUM_LEAF_PAGE 912316
+#define NUM_LEAF_PAGE 3012316
 #define NUM_256_PAGE 1024
-#define NUM_48_PAGE 98750
-#define NUM_16_PAGE 210938
-#define NUM_4_PAGE 387500
+#define NUM_48_PAGE 2008750
+#define NUM_16_PAGE 2010938
+#define NUM_4_PAGE 2067500
 
+#ifndef LEAF_CXL
 #define LEAF_CXL 0
-#define NODE4_CXL 0
-#define NODE16_CXL 0
-#define NODE48_CXL 0
-#define NODE256_CXL 0
+#endif
 
+#ifndef NODE4_CXL
+#define NODE4_CXL 0
+#endif
+#ifndef NODE16_CXL
+#define NODE16_CXL 0
+#endif
+#ifndef NODE48_CXL
+#define NODE48_CXL 0
+#endif
+#ifndef NODE256_CXL
+#define NODE256_CXL 0
+#endif
+
+#define LOCAL_MASK 0
 #define CXL_MASK 1
 /**
  * Macros to manipulate pointer tags
@@ -44,44 +55,36 @@ static art_node *alloc_node(uint8_t type)
     switch (type)
     {
     case NODE4:
-#if NODE4_CXL
-        n = ALIGN_UP(node4_ptr, LEAF_ALIGN);
-        node4_ptr = (void *)((uintptr_t)n + sizeof(art_node4));
-#else
-        n = (art_node *)calloc(1, sizeof(art_node4));
-#endif
+        // n = ALIGN_UP(node4_ptr, LEAF_ALIGN); // for prev bulk alloced region
+        // node4_ptr = (void *)((uintptr_t)n + sizeof(art_node4));
+        // n = (art_node *)calloc(1, sizeof(art_node4)); // vanilla
+        n = (art_node *)memkind_calloc(node4_kind, 1, sizeof(art_node4));
+#if CNT
         node4_cnt++;
+#endif
         break;
     case NODE16:
-#if NODE16_CXL
-        n = ALIGN_UP(node16_ptr, LEAF_ALIGN);
-        node16_ptr = (void *)((uintptr_t)n + sizeof(art_node16));
-#else
-        n = (art_node *)calloc(1, sizeof(art_node16));
-#endif
+        n = (art_node *)memkind_calloc(node16_kind, 1, sizeof(art_node16));
+#if CNT
         node16_cnt++;
+#endif
         break;
     case NODE48:
-#if NODE48_CXL
-        n = ALIGN_UP(node48_ptr, LEAF_ALIGN);
-        node48_ptr = (void *)((uintptr_t)n + sizeof(art_node48));
-#else
-        n = (art_node *)calloc(1, sizeof(art_node48));
-#endif
+        n = (art_node *)memkind_calloc(node48_kind, 1, sizeof(art_node48));
+#if CNT
         node48_cnt++;
+#endif
         break;
     case NODE256:
-#if NODE256_CXL
-        n = ALIGN_UP(node256_ptr, LEAF_ALIGN);
-        node256_ptr = (void *)((uintptr_t)n + sizeof(art_node256));
-#else
-        n = (art_node *)calloc(1, sizeof(art_node256));
-#endif
+        n = (art_node *)memkind_calloc(node256_kind, 1, sizeof(art_node256));
+#if CNT
         node256_cnt++;
+#endif
         break;
     default:
         abort();
     }
+    assert(n);
     n->type = type;
     return n;
 }
@@ -92,53 +95,33 @@ static art_node *alloc_node(uint8_t type)
  */
 int art_tree_init(art_tree *t)
 {
+    if (LEAF_CXL)
+    {
+        printf("LEAF_CXL enabled\n");
+    }
+    if (NODE4_CXL)
+    {
+        printf("NODE4_CXL enabled\n");
+    }
+    if (NODE16_CXL)
+    {
+        printf("NODE16_CXL enabled\n");
+    }
+    if (NODE48_CXL)
+    {
+        printf("NODE48_CXL enabled\n");
+    }
+    if (NODE256_CXL)
+    {
+        printf("NODE256_CXL enabled\n");
+    }
     t->root = NULL;
     t->size = 0;
-#if LEAF_CXL
-    // slab_base = numa_alloc_onnode((size_t)PAGE_SIZE * INIT_LEAF_COUNT, CXL_MASK);
-    // memset(slab_base, 0, (size_t)PAGE_SIZE * INIT_LEAF_COUNT);
-    // total_leaf_count = INIT_LEAF_COUNT;
-    slab_base = numa_alloc_onnode((size_t)PAGE_SIZE * NUM_LEAF_PAGE, CXL_MASK);
-    memset(slab_base, 0, (size_t)PAGE_SIZE * NUM_LEAF_PAGE);
-    bump_ptr = slab_base;
-#else
-    size_t total_leaf_size = (size_t)PAGE_SIZE * NUM_LEAF_PAGE;
-    leaf_base = mmap(NULL, total_leaf_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-    assert(leaf_base != NULL);
-    unsigned long local_mask = 1UL << 1; // local DRAM
-    long mbind_ret = mbind(leaf_base, total_leaf_size, MPOL_BIND, &local_mask, sizeof(local_mask) * 2, 0);
-    if (mbind_ret != 0)
-    {
-        perror("mbind");
-        abort();
-    }
-    int err = memkind_create_fixed(leaf_base, total_leaf_size, &leaf_kind);
-    if (err)
-    {
-        perror("memkind_create_fixed failed");
-        abort();
-    }
-#endif
-#if NODE256_CXL
-    node256_base = numa_alloc_onnode((size_t)PAGE_SIZE * NUM_256_PAGE, CXL_MASK);
-    memset(node256_base, 0, (size_t)PAGE_SIZE * NUM_256_PAGE);
-    node256_ptr = node256_base;
-#endif
-#if NODE48_CXL
-    node48_base = numa_alloc_onnode((size_t)PAGE_SIZE * NUM_48_PAGE, CXL_MASK);
-    memset(node48_base, 0, (size_t)PAGE_SIZE * NUM_48_PAGE);
-    node48_ptr = node48_base;
-#endif
-#if NODE16_CXL
-    node16_base = numa_alloc_onnode((size_t)PAGE_SIZE * NUM_16_PAGE, CXL_MASK);
-    memset(node16_base, 0, (size_t)PAGE_SIZE * NUM_16_PAGE);
-    node16_ptr = node16_base;
-#endif
-#if NODE4_CXL
-    node4_base = numa_alloc_onnode((size_t)PAGE_SIZE * NUM_4_PAGE, CXL_MASK);
-    memset(node4_base, 0, (size_t)PAGE_SIZE * NUM_4_PAGE);
-    node4_ptr = node4_base;
-#endif
+    init_region(&leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, LEAF_CXL, &leaf_kind);
+    init_region(&node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, NODE4_CXL, &node4_kind);
+    init_region(&node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, NODE16_CXL, &node16_kind);
+    init_region(&node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, NODE48_CXL, &node48_kind);
+    init_region(&node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, NODE256_CXL, &node256_kind);
     return 0;
 }
 
@@ -152,15 +135,10 @@ static void destroy_node(art_node *n)
     // Special case leafs
     if (IS_LEAF(n))
     {
+#if CNT
         leaf_cnt--;
-#if LEAF_CXL
-        // fprintf(stdout, "Destroying leaf at %p (leaf_cnt now %lu)\n", LEAF_RAW(n), leaf_cnt);
-        // art_leaf *leaf = LEAF_RAW(n);
-        // numa_free(leaf, sizeof(art_leaf) + leaf->key_len);
-#else
-        // free(LEAF_RAW(n)); // vanilla
-        memkind_free(leaf_kind, LEAF_RAW(n));
 #endif
+        memkind_free(leaf_kind, LEAF_RAW(n));
         return;
     }
 
@@ -181,12 +159,10 @@ static void destroy_node(art_node *n)
         {
             destroy_node(p.p1->children[i]);
         }
-#if NODE4_CXL
-        // numa_free(n, sizeof(art_node4));
-#else
-        free(n);
-#endif
+        memkind_free(node4_kind, n);
+#if CNT
         node4_cnt--;
+#endif
         break;
 
     case NODE16:
@@ -195,12 +171,10 @@ static void destroy_node(art_node *n)
         {
             destroy_node(p.p2->children[i]);
         }
-#if NODE16_CXL
-        // numa_free(n, sizeof(art_node16));
-#else
-        free(n);
-#endif
+        memkind_free(node16_kind, n);
+#if CNT
         node16_cnt--;
+#endif
         break;
 
     case NODE48:
@@ -212,12 +186,10 @@ static void destroy_node(art_node *n)
                 continue;
             destroy_node(p.p3->children[idx - 1]);
         }
-#if NODE48_CXL
-        // numa_free(n, sizeof(art_node48));
-#else
-        free(n);
-#endif
+        memkind_free(node48_kind, n);
+#if CNT
         node48_cnt--;
+#endif
         break;
 
     case NODE256:
@@ -227,12 +199,10 @@ static void destroy_node(art_node *n)
             if (p.p4->children[i])
                 destroy_node(p.p4->children[i]);
         }
-#if NODE256_CXL
-        // numa_free(n, sizeof(art_node256)); // do not do free here since we're using bulk allocation
-#else
-        free(n);
-#endif
+        memkind_free(node256_kind, n);
+#if CNT
         node256_cnt--;
+#endif
         break;
 
     default:
@@ -250,32 +220,13 @@ static void destroy_node(art_node *n)
  */
 int art_tree_destroy(art_tree *t)
 {
-    // printf("num_unmatch: %zu\n", num_unmatch);
     destroy_node(t->root);
-#if LEAF_CXL
-    numa_free(slab_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE);
-#else
-    int err = memkind_destroy_kind(leaf_kind);
-    if (err)
-    {
-        perror("memkind_destroy_kind failed");
-        abort();
-    }
-    munmap(leaf_base, total_leaf_size);
-    fprintf(stdout, "Memory was successfully allocated and released.\n");
-#endif
-#if NODE256_CXL
-    numa_free(node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE);
-#endif
-#if NODE48_CXL
-    numa_free(node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE);
-#endif
-#if NODE16_CXL
-    numa_free(node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE);
-#endif
-#if NODE4_CXL
-    numa_free(node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE);
-#endif
+    // numa_free(slab_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE); // for prev bulk free
+    destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind);
+    destroy_region(node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_kind);
+    destroy_region(node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_kind);
+    destroy_region(node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, node48_kind);
+    destroy_region(node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_kind);
     return 0;
 }
 
@@ -434,6 +385,9 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len)
         // Might be a leaf
         if (IS_LEAF(n))
         {
+#if HIT_CNT_TOTAL
+            leaf_hit_cnt++;
+#endif
             n = (art_node *)LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((art_leaf *)n, key, key_len, depth))
@@ -442,6 +396,26 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len)
             }
             return NULL;
         }
+#if HIT_CNT_TOTAL
+        switch (n->type)
+        {
+        case NODE4:
+            node4_hit_cnt++;
+            break;
+        case NODE16:
+            node16_hit_cnt++;
+            break;
+        case NODE48:
+            node48_hit_cnt++;
+            break;
+        case NODE256:
+            node256_hit_cnt++;
+            break;
+        }
+#endif
+#if HIT_DIST
+        n->hit_cnt++;
+#endif
 
         // Bail if the prefix does not match
         if (n->partial_len)
@@ -543,68 +517,19 @@ art_leaf *art_maximum(art_tree *t)
 static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value)
 {
     art_leaf *l = NULL;
-#if LEAF_CXL
-    l = ALIGN_UP(bump_ptr, LEAF_ALIGN);
-    bump_ptr = (void *)((uintptr_t)l + sizeof(art_leaf) + key_len);
-#else
+    // l = ALIGN_UP(bump_ptr, LEAF_ALIGN); // bulk alloc version
+    // bump_ptr = (void *)((uintptr_t)l + sizeof(art_leaf) + key_len);
     // l = (art_leaf *)calloc(1, sizeof(art_leaf) + key_len); // vanilla
-    void *mem = memkind_calloc(leaf_kind, 1, sizeof(art_leaf) + key_len); // compare addr pattern
-    l = (art_leaf *)mem;
-#endif
+    l = (art_leaf *)memkind_calloc(leaf_kind, 1, sizeof(art_leaf) + key_len); // compare addr pattern
     // printf("0x%lx, size: %lu\n", (unsigned long)(uintptr_t)l, sizeof(art_leaf) + key_len);
     l->value = value;
     l->key_len = key_len;
     memcpy(l->key, key, key_len);
+#if CNT
     leaf_cnt++;
+#endif
     return l;
 }
-
-// reallocation doens't work
-// static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value)
-// {
-// #if LEAF_CXL
-//     // First align the bump pointer — don't write to it yet
-//     void *aligned_ptr = ALIGN_UP(bump_ptr, LEAF_ALIGN);
-//     size_t needed = (uintptr_t)aligned_ptr + sizeof(art_leaf) + key_len - (uintptr_t)slab_base;
-
-//     if (needed > PAGE_SIZE * total_leaf_count)
-//     {
-//         size_t old_cap = total_leaf_count;
-//         size_t old_size = PAGE_SIZE * old_cap;
-//         size_t new_cap = old_cap * 2;
-//         size_t new_size = PAGE_SIZE * new_cap;
-
-//         uintptr_t used_offset = (uintptr_t)aligned_ptr - (uintptr_t)slab_base;
-
-//         void *new_base = numa_realloc(slab_base, old_size, new_size);
-//         if (!new_base)
-//         {
-//             perror("numa_realloc failed");
-//             exit(EXIT_FAILURE);
-//         }
-
-//         slab_base = new_base;
-//         total_leaf_count = new_cap;
-
-//         // Realign again after slab_base moved
-//         aligned_ptr = ALIGN_UP((void *)((uintptr_t)slab_base + used_offset), LEAF_ALIGN);
-//     }
-
-//     art_leaf *l = (art_leaf *)aligned_ptr;
-//     bump_ptr = (void *)((uintptr_t)l + sizeof(art_leaf) + key_len);
-
-//     assert(((uintptr_t)l % LEAF_ALIGN) == 0);
-//     assert((uintptr_t)bump_ptr <= (uintptr_t)slab_base + PAGE_SIZE * total_leaf_count);
-// #else
-//     art_leaf *l = (art_leaf *)calloc(1, sizeof(art_leaf) + key_len);
-// #endif
-
-//     l->value = value;
-//     l->key_len = key_len;
-//     memcpy(l->key, key, key_len);
-//     leaf_cnt++;
-//     return l;
-// }
 
 static int longest_common_prefix(art_leaf *l1, art_leaf *l2, int depth)
 {
@@ -646,7 +571,9 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
     else
     {
         art_node256 *new_node = (art_node256 *)alloc_node(NODE256);
+#if DEPTH
         new_node->depth = ((art_node48 *)n)->depth;
+#endif
         for (int i = 0; i < 256; i++)
         {
             if (n->keys[i])
@@ -656,12 +583,10 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
         }
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
-#if NODE48_CXL
-        // numa_free(n, sizeof(art_node48));
-#else
-        free(n);
-#endif
+        memkind_free(node48_kind, n);
+#if CNT
         node48_cnt--;
+#endif
         add_child256(new_node, ref, c, child);
     }
 }
@@ -726,7 +651,9 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
     else
     {
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
+#if DEPTH
         new_node->depth = ((art_node16 *)n)->depth;
+#endif
 
         // Copy the child pointers and populate the key map
         memcpy(new_node->children, n->children,
@@ -737,12 +664,10 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
         }
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
-#if NODE16_CXL
-        // numa_free(n, sizeof(art_node16));
-#else
-        free(n);
-#endif
+        memkind_free(node16_kind, n);
+#if CNT
         node16_cnt--;
+#endif
         add_child48(new_node, ref, c, child);
     }
 }
@@ -771,7 +696,9 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
     else
     {
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+#if DEPTH
         new_node->depth = ((art_node4 *)n)->depth;
+#endif
 
         // Copy the child pointers and the key map
         memcpy(new_node->children, n->children,
@@ -780,12 +707,10 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
                sizeof(unsigned char) * n->n.num_children);
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
-#if NODE4_CXL
-        // numa_free(n, sizeof(art_node4));
-#else
-        free(n);
-#endif
+        memkind_free(node4_kind, n);
+#if CNT
         node4_cnt--;
+#endif
         add_child16(new_node, ref, c, child);
     }
 }
@@ -847,6 +772,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
     // If we are at a leaf, we need to replace it with a node
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         // printf("n = %p\n", n);
         art_leaf *l = LEAF_RAW(n);
         // printf("l = %p\n", l);
@@ -863,7 +791,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // New value, we must split the leaf into a node4
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#if DEPTH
         new_node->depth = depth;
+#endif
 
         // Create a new leaf
         art_leaf *l2 = make_leaf(key, key_len, value);
@@ -878,6 +808,26 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         add_child4(new_node, ref, l2->key[depth + longest_prefix], SET_LEAF(l2));
         return NULL;
     }
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
+#if HIT_DIST
+    n->hit_cnt++;
+#endif
 
     // Check if given node has a prefix
     if (n->partial_len)
@@ -892,7 +842,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // Create a new node
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#if DEPTH
         new_node->depth = depth;
+#endif
         *ref = (art_node *)new_node;
         new_node->n.partial_len = prefix_diff;
         memcpy(new_node->n.partial, n->partial, min(MAX_PREFIX_LEN, prefix_diff));
@@ -981,7 +933,9 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
     if (n->n.num_children == 37)
     {
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
+#if DEPTH
         new_node->depth = ((art_node256 *)n)->depth;
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
 
@@ -995,12 +949,10 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
                 pos++;
             }
         }
-#if NODE256_CXL
-        // numa_free(n, sizeof(art_node256)); // do not do it here
-#else
-        free(n);
-#endif
+        memkind_free(node256_kind, n);
+#if CNT
         node256_cnt--;
+#endif
     }
 }
 
@@ -1014,7 +966,9 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
     if (n->n.num_children == 12)
     {
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+#if DEPTH
         new_node->depth = ((art_node48 *)n)->depth;
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
 
@@ -1029,12 +983,10 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
                 child++;
             }
         }
-#if NODE48_CXL
-        // numa_free(n, sizeof(art_node48));
-#else
-        free(n);
-#endif
+        memkind_free(node48_kind, n);
+#if CNT
         node48_cnt--;
+#endif
     }
 }
 
@@ -1048,17 +1000,17 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
     if (n->n.num_children == 3)
     {
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#if DEPTH
         new_node->depth = ((art_node16 *)n)->depth;
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
         memcpy(new_node->keys, n->keys, 4);
         memcpy(new_node->children, n->children, 4 * sizeof(void *));
-#if NODE16_CXL
-        // numa_free(n, sizeof(art_node16));
-#else
-        free(n);
-#endif
+        memkind_free(node16_kind, n);
+#if CNT
         node16_cnt--;
+#endif
     }
 }
 
@@ -1094,12 +1046,10 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
             child->partial_len += n->n.partial_len + 1;
         }
         *ref = child;
-#if NODE4_CXL
-        // numa_free(n, sizeof(art_node4));
-#else
-        free(n);
-#endif
+        memkind_free(node4_kind, n);
+#if CNT
         node4_cnt--;
+#endif
     }
 }
 
@@ -1129,6 +1079,9 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref, const unsigned ch
     // Handle hitting a leaf node
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         art_leaf *l = LEAF_RAW(n);
         if (!leaf_matches(l, key, key_len, depth))
         {
@@ -1137,6 +1090,26 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref, const unsigned ch
         }
         return NULL;
     }
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
+#if HIT_DIST
+    n->hit_cnt++;
+#endif
 
     // Bail if the prefix does not match
     if (n->partial_len)
@@ -1188,12 +1161,11 @@ void *art_delete(art_tree *t, const unsigned char *key, int key_len)
     {
         t->size--;
         void *old = l->value;
+#if CNT
         leaf_cnt--;
-#if LEAF_CXL
-        // numa_free(l, sizeof(art_leaf) + l->key_len);
-#else
-        free(l);
 #endif
+        // free(l);
+        memkind_free(leaf_kind, l); // TODO: need to recheck
         return old;
     }
     return NULL;
@@ -1366,17 +1338,67 @@ int art_iter_prefix(art_tree *t, const unsigned char *key, int key_len, art_call
     }
     return 0;
 }
+void init_region(void **base, size_t size, int use_cxl, struct memkind **kind)
+{
+    *base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    assert(*base != NULL);
 
+    unsigned long node_mask = 1UL << (use_cxl ? CXL_MASK : LOCAL_MASK);
+    long mbind_ret = mbind(*base, size, MPOL_BIND, &node_mask, sizeof(node_mask) * 8, 0);
+    if (mbind_ret != 0)
+    {
+        perror("mbind");
+        abort();
+    }
+
+    int err = memkind_create_fixed(*base, size, kind);
+    if (err)
+    {
+        perror("memkind_create_fixed failed");
+        abort();
+    }
+}
+
+void destroy_region(void *base, size_t size, struct memkind *kind)
+{
+    int err = memkind_destroy_kind(kind);
+    if (err)
+    {
+        perror("memkind_destroy_kind failed");
+        abort();
+    }
+    munmap(base, size);
+}
+
+#if CNT
 void node_cnt_stat()
 {
-    printf("------- Leaf Node Count Summry -------\n");
+    printf("------- Node Count Summry -------\n");
     printf("Node4: %lu\n", node4_cnt);
     printf("Node16: %lu\n", node16_cnt);
     printf("Node48: %lu\n", node48_cnt);
     printf("Node256: %lu\n", node256_cnt);
     printf("Leaf: %lu\n", leaf_cnt);
 }
+#endif
 
+#if HIT_CNT_TOTAL
+void node_traverse_cnt_stat()
+{
+    printf("------- Node Hit Count Summry -------\n");
+    printf("Node4: %lu\n", node4_hit_cnt);
+    printf("Node16: %lu\n", node16_hit_cnt);
+    printf("Node48: %lu\n", node48_hit_cnt);
+    printf("Node256: %lu\n", node256_hit_cnt);
+    printf("Leaf: %lu\n", leaf_hit_cnt);
+}
+#endif
+
+#if HIT_DIST
+// ?
+
+#endif
+#if DEPTH
 void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats)
 {
     if (!n)
@@ -1458,34 +1480,34 @@ void print_avg_node_depths(const node_depth_stats_t *s)
     if (s->node256_count)
         printf("Node256 total: %zu, avg depth:  %.2f\n", s->node256_count, (double)s->node256_depth_total / s->node256_count);
 }
+#endif
+// static int check_numa_node(void *addr)
+// {
+//     int status;
+//     int ret;
 
-int check_numa_node(void *addr)
-{
-    int status;
-    int ret;
+//     // Check the NUMA node of the page that contains addr
+//     ret = move_pages(0,       // self process
+//                      1,       // one page
+//                      &addr,   // address
+//                      NULL,    // don't move
+//                      &status, // output node status
+//                      0);      // flags
 
-    // Check the NUMA node of the page that contains addr
-    ret = move_pages(0,       // self process
-                     1,       // one page
-                     &addr,   // address
-                     NULL,    // don't move
-                     &status, // output node status
-                     0);      // flags
+//     if (ret == -1)
+//     {
+//         perror("check addr loc failed");
+//         return -1;
+//     }
 
-    if (ret == -1)
-    {
-        perror("check addr loc failed");
-        return -1;
-    }
-
-    if (status >= 0)
-    {
-        // printf("Address %p is on NUMA node %d\n", addr, status);
-        return status;
-    }
-    else
-    {
-        // printf("Address %p is not currently mapped (status = %d)\n", addr, status);
-        return -1;
-    }
-}
+//     if (status >= 0)
+//     {
+//         // printf("Address %p is on NUMA node %d\n", addr, status);
+//         return status;
+//     }
+//     else
+//     {
+//         // printf("Address %p is not currently mapped (status = %d)\n", addr, status);
+//         return -1;
+//     }
+// }

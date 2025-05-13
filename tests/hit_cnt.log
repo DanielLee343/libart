@@ -1,0 +1,129 @@
+workloada:
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 59.38
+------- Node Hit Count Summry -------
+Node4: 248382112
+Node16: 384558011
+Node48: 1078488838
+Node256: 113189554
+Leaf: 74601341
+# found: 60000418, total_val: 3287549022616959
+ops_ms: 190.53
+------- Node Hit Count Summry -------
+Node4: 466086152
+Node16: 695515542
+Node48: 2230274237
+Node256: 352983823
+Leaf: 194601341
+gaps:
+217704040
+310957531
+1151785399
+239794269
+120000000
+
+
+workloadb:
+
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 58.80
+------- Node Hit Count Summry -------
+Node4: 248382112
+Node16: 384558011
+Node48: 1078488838
+Node256: 113189554
+Leaf: 74601341
+# found: 114001936, total_val: 7091997580587081
+ops_ms: 189.25
+------- Node Hit Count Summry -------
+Node4: 466087795
+Node16: 695541026
+Node48: 2230300857
+Node256: 352991291
+Leaf: 194601341
+gaps:
+217705683
+310983015
+1151812019
+239801737
+120000000
+
+workloadc:
+
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 58.77
+------- Node Hit Count Summry -------
+Node4: 248382112
+Node16: 384558011
+Node48: 1078488838
+Node256: 113189554
+Leaf: 74601341
+# found: 120000000, total_val: 8291496902096544
+ops_ms: 186.73
+------- Node Hit Count Summry -------
+Node4: 466086225
+Node16: 695516854
+Node48: 2230291117
+Node256: 352984434
+Leaf: 194601341
+gap:
+217704113
+310958843
+1151802279
+239794880
+120000000
+
+workloadd:
+
+Loaded 120000000 keys
+Loaded 120000000 ops
+insert: 59.07
+------- Node Hit Count Summry -------
+Node4: 248382112
+Node16: 384558011
+Node48: 1078488838
+Node256: 113189554
+Leaf: 74601341
+# found: 113996378, total_val: 7561421155279142
+ops_ms: 89.83
+------- Node Hit Count Summry -------
+Node4: 403825201
+Node16: 596106020
+Node48: 2300906880
+Node256: 354642910
+Leaf: 194601341
+gaps:
+155443089
+211548009
+1222418042
+241453356
+120000000
+
+workloadla:
+
+Loaded 10000000 keys
+Loaded 240000000 ops
+insert: 3.90
+------- Node Hit Count Summry -------
+Node4: 26891201
+Node16: 40047612
+Node48: 73934495
+Node256: 0
+Leaf: 3119946
+# found: 0, total_val: 0
+ops_ms: 110.37
+------- Node Hit Count Summry -------
+Node4: 479385606
+Node16: 718696503
+Node48: 2333486161
+Node256: 372906018
+Leaf: 201320278
+gaps:
+452494405
+678648891
+2259551666
+372906018
+198200332

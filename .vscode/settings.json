@@ -1,0 +1,22 @@
+{
+    "files.associations": {
+        "array": "c",
+        "charconv": "c",
+        "chrono": "c",
+        "compare": "c",
+        "functional": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "variant": "c",
+        "istream": "c",
+        "ostream": "c",
+        "memory": "c",
+        "random": "c",
+        "cstdlib": "c",
+        "art.h": "c",
+        "stdlib.h": "c",
+        "strings.h": "c"
+    }
+}
