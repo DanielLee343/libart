@@ -34,7 +34,6 @@ int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f);
 void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys, uint64_t *val_arr_keys);
 void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops, uint64_t *val_arr_ops);
 int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value);
-int dump_hit_count_callback(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
 static double elapsed_ms(struct timespec start, struct timespec end)
 {
@@ -54,10 +53,10 @@ int main(int argc, char *argv[])
     char input_path[128];
     char ops_path[128];
     snprintf(input_path, sizeof(input_path),
-             "/home/lyuze/workspace/ycsb/workloads_uniform/load_%s", argv[1]);
+             "/home/lyuze/workspace/ycsb/workloads_zipfian/load_%s", argv[1]);
 
     snprintf(ops_path, sizeof(ops_path),
-             "/home/lyuze/workspace/ycsb/workloads_uniform/txn_%s", argv[1]);
+             "/home/lyuze/workspace/ycsb/workloads_zipfian/txn_%s", argv[1]);
     srand(42);
     if (numa_available() < 0)
     {
@@ -84,8 +83,6 @@ int main(int argc, char *argv[])
         perror("malloc key_lens failed");
         exit(EXIT_FAILURE);
     }
-
-    // malloc for values
 
     int num_keys = pre_load_data(keys, key_lens, f_input);
     uint64_t *val_arr_keys = numa_alloc_onnode(sizeof(uint64_t) * num_keys, VAL_LOC_MASK);
@@ -128,6 +125,12 @@ int main(int argc, char *argv[])
 
     art_tree t;
     int res = art_tree_init(&t);
+    { // for printing accessed addr
+        // char acc_addr_path[64];
+        // snprintf(acc_addr_path, sizeof(acc_addr_path),
+        //          "zipfian/email_a_hotness/depth_dist_acc.txt");
+        // acc_fd = fopen(acc_addr_path, "w");
+    }
 
     // populate art
     size_t off = 0;
@@ -136,22 +139,49 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     insert_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
-    // node_cnt_stat();
-    // node_traverse_cnt_stat();
     fflush(stdout);
+    {
+        // reset_node_hit_cnt_total();
+        // cooling_node_hit_cnt_individual(t.root, 0); // resets
+        // char level_stats_path[64];
+        // snprintf(level_stats_path, sizeof(level_stats_path),
+        //          "zipfian/level_stats_%s.txt", argv[1]);
+        // FILE *level_stats_fd = fopen(level_stats_path, "w");
+        // stream_level_distribution(t.root, level_stats_fd);
+        // fclose(level_stats_fd);
+        // distribute_nodes(t.root, &t.root, 0);
+        // print_node_move_stat();
+        // start_acc_streaming = 1;
+    }
+
     // measure ops perf
     clock_gettime(CLOCK_MONOTONIC, &t_start);
     measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops, val_arr_ops);
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     ops_ms = elapsed_ms(t_start, t_end);
-    fprintf(stdout, "ops_ms: %.2f\n", ops_ms / 1000);
-    // node_traverse_cnt_stat();
-    // art_iter(&t, dump_hit_count_callback, NULL);
-    fflush(stdout);
+    fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
+    {
+        // node_cnt_stat();
+        // node_hit_cnt_total();
+        // char hit_cnt_path[64];
+        // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
+        //          "zipfian/hit_count_%s.txt", argv[1]);
+        // FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
+        // stream_node_hit_counts_individual(t.root, hit_cnt_fd);
+        // fclose(hit_cnt_fd);
 
+        // node_depth_stats_t stat = {0};
+        // FILE *depth_fd = fopen("depth_file.txt", "w"); // stream node type addr and size
+        // collect_node_depths(t.root, 0, &stat, depth_fd);
+        // print_avg_node_depths(&stat);
+        // fclose(depth_fd);
+    }
+    fflush(stdout);
+    { // for printing accessed addr
+        // fclose(acc_fd);
+    }
     // cleaning
     res = art_tree_destroy(&t);
-    // node_cnt_stat();
     numa_free(keys, (size_t)MAX_KEYS * AVG_KEY_LEN);
     numa_free(key_lens, sizeof(int) * MAX_KEYS);
 
@@ -278,7 +308,8 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
     int none_null_cnt = 0;
     size_t offset = 0;
     uintptr_t total_val = 0;
-
+    char hit_cnt_path[128];
+    int stream_counter = 0;
     for (int i = 0; i < num_ops; i++)
     {
         const unsigned char *ops_ptr = (const unsigned char *)(ops + offset);
@@ -297,12 +328,19 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
         else if (ops_type == OP_UPDATE || ops_type == OP_INSERT)
         {
             val_arr_ops[i] = i + 1;
-            // val_arr_ops->value0 = i;
-            // val_arr_ops->value1 = i + 2;
-            // val_arr_ops->value2 = i + 5;
-            // val_arr_ops->value3 = i + 98;
             art_insert(tree, ops_ptr, ops_len, &val_arr_ops[i]);
         }
+        // if (i % 10000000 == 0)
+        // {
+        //     printf("streaming %d...\n", stream_counter);
+        //     snprintf(hit_cnt_path, sizeof(hit_cnt_path),
+        //              "zipfian/email_a_hotness/%d.txt", stream_counter);
+        //     FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
+        //     stream_node_hit_counts_individual(tree->root, hit_cnt_fd);
+        //     cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
+        //     fclose(hit_cnt_fd);
+        //     stream_counter++;
+        // }
 
         offset += ops_len;
     }
@@ -315,45 +353,5 @@ int print_key_callback(void *data, const unsigned char *key, unsigned int key_le
         printf("%02x ", key[i]);
     printf("\nkey = \"%.*s\", value = %p\n", key_len, key, value);
     (*counter)++;
-    return 0;
-}
-
-int dump_hit_count_callback(void *data, const unsigned char *key, uint32_t key_len, void *value)
-{
-    // FILE *fp = (FILE *)data;
-    // if (!n)
-    //     return;
-    // if (IS_LEAF(n))
-    //     return;
-    // switch (n->type)
-    // {
-    // case NODE4:
-    // {
-    //     printf("inner node4\n");
-    //     break;
-    // }
-
-    // case NODE16:
-    // {
-    //     printf("inner node16\n");
-    //     break;
-    // }
-
-    // case NODE48:
-    // {
-    //     printf("inner node48\n");
-    //     break;
-    // }
-
-    // case NODE256:
-    // {
-    //     printf("inner node256\n");
-    //     break;
-    // }
-
-    // default:
-    //     abort();
-    // }
-    fprintf(stdout, "key=\"%.*s\"\n", key_len, key);
     return 0;
 }

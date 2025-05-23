@@ -3,7 +3,7 @@ LD=gcc
 PREFIX=/usr/local
 LIBDIR=$(PREFIX)/lib
 INCLUDEDIR=$(PREFIX)/include
-CFLAGS_BASE=-g -std=c99 -D_GNU_SOURCE -Wall -Werror -O3
+CFLAGS_BASE=-g -std=c99 -D_GNU_SOURCE -O3
 CFLAGS ?= $(CFLAGS_BASE) $(CFLAGS_EXTRA)
 LDFLAGS = -lmemkind -lnuma
 SHCFLAGS=$(CFLAGS) $(LDFLAGS) -fPIC

@@ -43,10 +43,15 @@ extern "C"
 #define BROKEN_GCC_C99_INLINE
 #endif
 #endif
-#define CNT 0           // bookkeeping # count for diff node types
-#define HIT_CNT_TOTAL 0 // bookkeeping # hit for diff node types
-#define DEPTH 0         // bookkeeping avg depth for diff node types
-#define HIT_DIST 1      // for # hit distribution for diff node types
+#define CNT 0             // bookkeeping # count for diff node types
+#define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
+#define DEPTH 0           // bookkeeping avg depth for diff node types
+#define HIT_DIST 0        // for # hit distribution for diff node types
+#define LEVEL_ORDER 0     // perform level traversal to collect node type composition
+#define STATIC_DIST 0     // perform static placement based on depth
+#define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
+#define ONLINE 1          // online swapping
+
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
     /**
@@ -62,6 +67,12 @@ extern "C"
 #if HIT_DIST
         int hit_cnt;
 #endif
+#if DEPTH
+        int depth;
+#endif
+        // #if STATIC_DIST
+        //         struct memkind *alloc_kind;
+        // #endif
     } art_node;
 
     /**
@@ -72,10 +83,6 @@ extern "C"
         art_node n;
         unsigned char keys[4];
         art_node *children[4];
-#if DEPTH
-        int depth;
-#endif
-
     } art_node4;
 
     /**
@@ -86,9 +93,6 @@ extern "C"
         art_node n;
         unsigned char keys[16];
         art_node *children[16];
-#if DEPTH
-        int depth;
-#endif
     } art_node16;
 
     /**
@@ -100,9 +104,6 @@ extern "C"
         art_node n;
         unsigned char keys[256];
         art_node *children[48];
-#if DEPTH
-        int depth;
-#endif
     } art_node48;
 
     /**
@@ -112,9 +113,6 @@ extern "C"
     {
         art_node n;
         art_node *children[256];
-#if DEPTH
-        int depth;
-#endif
     } art_node256;
 
     /**
@@ -262,16 +260,18 @@ inline uint64_t art_size(art_tree *t)
     unsigned long leaf_cnt = 0;
     void node_cnt_stat();
 #endif
-#if HIT_CNT
+#if HIT_CNT_TOTAL
     unsigned long node4_hit_cnt = 0;
     unsigned long node16_hit_cnt = 0;
     unsigned long node48_hit_cnt = 0;
     unsigned long node256_hit_cnt = 0;
     unsigned long leaf_hit_cnt = 0;
-    void node_traverse_cnt_stat();
+    void node_hit_cnt_total();
+    void reset_node_hit_cnt_total();
 #endif
 
-#if collect_node_depths
+#if DEPTH
+#define NODE_DEPTH(n) (((art_node *)(n))->depth)
     typedef struct
     {
         size_t node4_depth_total;
@@ -287,25 +287,84 @@ inline uint64_t art_size(art_tree *t)
         size_t node256_count;
     } node_depth_stats_t;
 
-    void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats);
+    void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats, FILE *fd);
     void print_avg_node_depths(const node_depth_stats_t *s);
 #endif
+#if HIT_DIST
+    void stream_node_hit_counts_individual(art_node *n, FILE *out);
+    void cooling_node_hit_cnt_individual(art_node *n, float factor); // cooling factor: 0 means completely reset the hit_cnt. Less value indicates less weight for history factors
+#endif
+#if LEVEL_ORDER
+    typedef struct node_level_entry
+    {
+        art_node *node;
+        int depth;
+        struct node_level_entry *next;
+    } node_level_entry;
+    void stream_level_distribution(art_node *root, FILE *out);
+#endif
+    void stream_node_type_addr(art_node *n, FILE *fd);
+    static void swap_art_nodes(art_node **n0, art_node **n1); // not used
     // static int check_numa_node(void *addr);
     size_t total_leaf_count = 0;
 
     void init_region(void **base, size_t size, int use_cxl, struct memkind **kind);
     void destroy_region(void *base, size_t size, struct memkind *kind);
 
-    struct memkind *leaf_kind = NULL;
-    struct memkind *node4_kind = NULL;
-    struct memkind *node16_kind = NULL;
-    struct memkind *node48_kind = NULL;
-    struct memkind *node256_kind = NULL;
-    void *leaf_base = NULL;
+    void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
     void *node4_base = NULL;
     void *node16_base = NULL;
     void *node48_base = NULL;
     void *node256_base = NULL;
+    struct memkind *leaf_kind = NULL; // memkind ptr
+    struct memkind *node4_kind = NULL;
+    struct memkind *node16_kind = NULL;
+    struct memkind *node48_kind = NULL;
+    struct memkind *node256_kind = NULL;
+#if STATIC_DIST || ONLINE
+    void distribute_nodes(art_node *n, art_node **ref, int curr_depth);
+    void print_node_move_stat();
+    // leaf
+    void *leaf_local = NULL;                // for local mmaped ptr
+    void *leaf_cxl = NULL;                  // for cxl mmaped ptr
+    struct memkind *leaf_local_kind = NULL; // for local memkind ptr
+    struct memkind *leaf_cxl_kind = NULL;   // for cxl memkind ptr
+    // node4
+    void *node4_local = NULL;
+    void *node4_cxl = NULL;
+    struct memkind *node4_local_kind = NULL;
+    struct memkind *node4_cxl_kind = NULL;
+    // node16
+    void *node16_local = NULL;
+    void *node16_cxl = NULL;
+    struct memkind *node16_local_kind = NULL;
+    struct memkind *node16_cxl_kind = NULL;
+    // node48
+    void *node48_local = NULL;
+    void *node48_cxl = NULL;
+    struct memkind *node48_local_kind = NULL;
+    struct memkind *node48_cxl_kind = NULL;
+    // node256
+    void *node256_local = NULL;
+    void *node256_cxl = NULL;
+    struct memkind *node256_local_kind = NULL;
+    struct memkind *node256_cxl_kind = NULL;
+    // counting move
+    int leaf_moved_local = 0;
+    int leaf_moved_cxl = 0;
+    int node4_moved_local = 0;
+    int node4_moved_cxl = 0;
+    int node16_moved_local = 0;
+    int node16_moved_cxl = 0;
+    int node48_moved_local = 0;
+    int node48_moved_cxl = 0;
+    int node256_moved_local = 0;
+    int node256_moved_cxl = 0;
+#endif
+#if STREAM_ACC_ADDR
+    FILE *acc_fd;
+    int start_acc_streaming = 0;
+#endif
 #ifdef __cplusplus
 }
 #endif

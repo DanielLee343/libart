@@ -1,8 +1,0 @@
-workloada:
-------- Leaf Node Count Summry -------
-Node4: 12965350
-Node16: 2934978
-Node48: 456440
-Node256: 6
-Leaf: 48734453
-

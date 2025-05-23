@@ -17,6 +17,14 @@
         "cstdlib": "c",
         "art.h": "c",
         "stdlib.h": "c",
-        "strings.h": "c"
+        "strings.h": "c",
+        "bitset": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "format": "c",
+        "emmintrin.h": "c",
+        "optional": "c",
+        "system_error": "c"
     }
 }

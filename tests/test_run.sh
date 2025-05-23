@@ -3,7 +3,8 @@ env=$1
 build=$2
 # wls=("email_workloada" "email_workloadb" "email_workloadc" "email_workloadd" "email_workloadla"
 #     "randint_workloada" "randint_workloadb" "randint_workloadc" "randint_workloadd" "randint_workloade" "randint_workloadla")
-wls=("randint_workloadd")
+# wls=("randint_workloada" "randint_workloadb" "randint_workloadc" "randint_workloadd" "randint_workloade" "randint_workloadla")
+wls=("randint_workloade")
 LIBART_DIR=$HOME/workspace/libart
 
 if [ "$env" = "cxl" ]; then
@@ -26,7 +27,7 @@ fi
 
 if [[ ${#wls[@]} -eq 0 ]]; then
     echo "Error: wls array is empty."
-    exit 1
+    exit 1˜
 fi
 
 declare -A configs=(
@@ -38,8 +39,22 @@ declare -A configs=(
     [node48]="-DNODE48_CXL=1"
     [node256]="-DNODE256_CXL=1"
 )
+# [0]="-DDEPTH_THRESH=0"
+# [1]="-DDEPTH_THRESH=1"
+# [2]="-DDEPTH_THRESH=2"
+# [3]="-DDEPTH_THRESH=3"
+# [4]="-DDEPTH_THRESH=4"
+# [5]="-DDEPTH_THRESH=5"
+# [6]="-DDEPTH_THRESH=6"
+# [7]="-DDEPTH_THRESH=7"
+# [8]="-DDEPTH_THRESH=8"
+# [9]="-DDEPTH_THRESH=9"
+# [10]="-DDEPTH_THRESH=10"
+# [11]="-DDEPTH_THRESH=11"
+# [12]="-DDEPTH_THRESH=12"
 
 for mode in "${!configs[@]}"; do
+    # for mode in $(printf "%s\n" "${!configs[@]}" | sort -n); do
     echo -e "\n========== Building ${mode} =========="
     pushd "$LIBART_DIR" >/dev/null || exit 1
     make clean
@@ -51,7 +66,11 @@ for mode in "${!configs[@]}"; do
     for wl in "${wls[@]}"; do
         echo -e "\n========= starting ${wl}_${mode} =========="
         echo 3 | sudo tee /proc/sys/vm/drop_caches
-        ${cmd_prefix} ./value "${wl}"
+        if [[ "$wl" == "randint_workloade" ]]; then
+            ${cmd_prefix} ./scan "${wl}"
+        else
+            ${cmd_prefix} ./value "${wl}"
+        fi
     done
 done
 
@@ -68,11 +87,11 @@ done
 #     memf=${output_dir}/${build}.mem
 #     fppng=${output_dir}/${build}_fp.png
 
-#     ${cmd_prefix} ./value ${wl} &
+#     ${cmd_prefix} ./scan ${wl} &
 #     # sleep 5 &
 #     check_pid=$!
 #     # gen_bw &
-#     run_perf $check_pid $perfoutput
+#     # run_perf $check_pid $perfoutput
 #     # kill_and_plot_pcm_bw $bwf $bwfigure
-#     # gen_fp $check_pid raw_fp.txt $fppng
+#     gen_fp $check_pid raw_fp.txt $fppng
 # done
