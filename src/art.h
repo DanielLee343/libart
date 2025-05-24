@@ -2,8 +2,10 @@
 #include <stddef.h>
 #include <numa.h>
 #include <numaif.h>
+#include <stdbool.h>
 #include <sys/mman.h>
 #include <memkind.h>
+#include <unistd.h>
 #ifndef ART_H
 #define ART_H
 
@@ -46,7 +48,7 @@ extern "C"
 #define CNT 0             // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
 #define DEPTH 0           // bookkeeping avg depth for diff node types
-#define HIT_DIST 0        // for # hit distribution for diff node types
+#define HIT_DIST 1        // for # hit distribution for diff node types
 #define LEVEL_ORDER 0     // perform level traversal to collect node type composition
 #define STATIC_DIST 0     // perform static placement based on depth
 #define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
@@ -70,9 +72,10 @@ extern "C"
 #if DEPTH
         int depth;
 #endif
-        // #if STATIC_DIST
-        //         struct memkind *alloc_kind;
-        // #endif
+#if ONLINE
+        int idx_in_arr;
+        bool in_local;
+#endif
     } art_node;
 
     /**
@@ -364,6 +367,36 @@ inline uint64_t art_size(art_tree *t)
 #if STREAM_ACC_ADDR
     FILE *acc_fd;
     int start_acc_streaming = 0;
+#endif
+#if ONLINE
+    bool leaf_local_full = 0;
+    bool node4_local_full = 0;
+    bool node16_local_full = 0;
+    bool node48_local_full = 0;
+    bool node256_local_full = 0; // not gonna work not, solve later
+    void **node4_hot;
+    void **node4_cold;
+    void **node16_hot;
+    void **node16_cold;
+    void **node48_hot;
+    void **node48_cold;
+    void **node256_hot;
+    void **node256_cold;
+    int node4_local_alloc_cnt = 0;
+    int node4_cxl_alloc_cnt = 0;
+    int node16_local_alloc_cnt = 0;
+    int node16_cxl_alloc_cnt = 0;
+    int node48_local_alloc_cnt = 0;
+    int node48_cxl_alloc_cnt = 0;
+    int node256_local_alloc_cnt = 0; // not using
+    int node256_cxl_alloc_cnt = 0;
+    art_node *tiered_calloc(bool *local_full,
+                            memkind_t local_kind, memkind_t cxl_kind,
+                            size_t size,
+                            void **node_hot_arr, int *hot_count,
+                            void **node_cold_arr, int *cold_count);
+    void sort_hotness(void **alloced_nodes, int alloced_cnt);
+    static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr);
 #endif
 #ifdef __cplusplus
 }

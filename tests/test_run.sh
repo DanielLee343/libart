@@ -1,10 +1,10 @@
 #!/bin/bash
 env=$1
 build=$2
-# wls=("email_workloada" "email_workloadb" "email_workloadc" "email_workloadd" "email_workloadla"
+wls=("email_workloada" "email_workloadb" "email_workloadc" "email_workloadd")
 #     "randint_workloada" "randint_workloadb" "randint_workloadc" "randint_workloadd" "randint_workloade" "randint_workloadla")
 # wls=("randint_workloada" "randint_workloadb" "randint_workloadc" "randint_workloadd" "randint_workloade" "randint_workloadla")
-wls=("randint_workloade")
+# wls=("randint_workloade")
 LIBART_DIR=$HOME/workspace/libart
 
 if [ "$env" = "cxl" ]; then
@@ -31,14 +31,27 @@ if [[ ${#wls[@]} -eq 0 ]]; then
 fi
 
 declare -A configs=(
-    [base]=""
-    [cxl]="-DLEAF_CXL=1 -DNODE4_CXL=1 -DNODE16_CXL=1 -DNODE48_CXL=1 -DNODE256_CXL=1"
-    [leaf]="-DLEAF_CXL=1"
-    [node4]="-DNODE4_CXL=1"
-    [node16]="-DNODE16_CXL=1"
-    [node48]="-DNODE48_CXL=1"
-    [node256]="-DNODE256_CXL=1"
+    [0]="-DDEPTH_THRESH=0"
+    [3]="-DDEPTH_THRESH=3"
+    [6]="-DDEPTH_THRESH=6"
+    [9]="-DDEPTH_THRESH=9"
+    [12]="-DDEPTH_THRESH=12"
 )
+# [15]="-DDEPTH_THRESH=15"
+# [18]="-DDEPTH_THRESH=18"
+# [21]="-DDEPTH_THRESH=21"
+# [24]="-DDEPTH_THRESH=24"
+# [27]="-DDEPTH_THRESH=27"
+# [30]="-DDEPTH_THRESH=30"
+# [33]="-DDEPTH_THRESH=33"
+# [base]=""
+# [cxl]="-DLEAF_CXL=1 -DNODE4_CXL=1 -DNODE16_CXL=1 -DNODE48_CXL=1 -DNODE256_CXL=1"
+# [leaf]="-DLEAF_CXL=1"
+# [node4]="-DNODE4_CXL=1"
+# [node16]="-DNODE16_CXL=1"
+# [node48]="-DNODE48_CXL=1"
+# [node256]="-DNODE256_CXL=1"
+
 # [0]="-DDEPTH_THRESH=0"
 # [1]="-DDEPTH_THRESH=1"
 # [2]="-DDEPTH_THRESH=2"
@@ -53,8 +66,8 @@ declare -A configs=(
 # [11]="-DDEPTH_THRESH=11"
 # [12]="-DDEPTH_THRESH=12"
 
-for mode in "${!configs[@]}"; do
-    # for mode in $(printf "%s\n" "${!configs[@]}" | sort -n); do
+# for mode in "${!configs[@]}"; do
+for mode in $(printf "%s\n" "${!configs[@]}" | sort -n); do
     echo -e "\n========== Building ${mode} =========="
     pushd "$LIBART_DIR" >/dev/null || exit 1
     make clean

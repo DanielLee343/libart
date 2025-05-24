@@ -126,10 +126,10 @@ int main(int argc, char *argv[])
     art_tree t;
     int res = art_tree_init(&t);
     { // for printing accessed addr
-        // char acc_addr_path[64];
-        // snprintf(acc_addr_path, sizeof(acc_addr_path),
-        //          "zipfian/email_a_hotness/depth_dist_acc.txt");
-        // acc_fd = fopen(acc_addr_path, "w");
+      // char acc_addr_path[64];
+      // snprintf(acc_addr_path, sizeof(acc_addr_path),
+      //          "zipfian/email_a_hotness/depth_dist_acc.txt");
+      // acc_fd = fopen(acc_addr_path, "w");
     }
 
     // populate art
@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
         // distribute_nodes(t.root, &t.root, 0);
         // print_node_move_stat();
         // start_acc_streaming = 1;
+        // stream_node_type_addr(t.root, stdout);
     }
 
     // measure ops perf
@@ -178,7 +179,7 @@ int main(int argc, char *argv[])
     }
     fflush(stdout);
     { // for printing accessed addr
-        // fclose(acc_fd);
+      // fclose(acc_fd);
     }
     // cleaning
     res = art_tree_destroy(&t);
@@ -330,17 +331,20 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             val_arr_ops[i] = i + 1;
             art_insert(tree, ops_ptr, ops_len, &val_arr_ops[i]);
         }
-        // if (i % 10000000 == 0)
-        // {
-        //     printf("streaming %d...\n", stream_counter);
-        //     snprintf(hit_cnt_path, sizeof(hit_cnt_path),
-        //              "zipfian/email_a_hotness/%d.txt", stream_counter);
-        //     FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
-        //     stream_node_hit_counts_individual(tree->root, hit_cnt_fd);
-        //     cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
-        //     fclose(hit_cnt_fd);
-        //     stream_counter++;
-        // }
+        if (i % 1000 == 0)
+        {
+            // printf("streaming %d...\n", stream_counter);
+            // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
+            //          "zipfian/email_a_hotness/%d.txt", stream_counter);
+            // FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
+            // stream_node_hit_counts_individual(tree->root, hit_cnt_fd);
+            // cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
+            // fclose(hit_cnt_fd);
+            // stream_counter++;
+            sort_hotness(node4_hot, node4_local_alloc_cnt);
+            // sort_hotness(node16_hot, node16_local_alloc_cnt);
+            // sort_hotness(node48_hot, node48_local_alloc_cnt);
+        }
 
         offset += ops_len;
     }

@@ -1,1200 +1,3 @@
-
-========== Building 3 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=3 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 3 tests ==========
-
-========= starting email_workloada_3 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=3
-insert: 48.97
-leaf_moved: local: 5856, cxl: 65304273
-node4_moved: local: 7068, cxl: 17907245
-node16_moved: local: 3408, cxl: 3999941
-node48_moved: local: 787, cxl: 562778
-node256_moved: local: 5, cxl: 1
-# found: 59998488, total_val: 3482029539445722
-ops: 120.68
-
-========= starting email_workloadb_3 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=3
-insert: 49.00
-leaf_moved: local: 5856, cxl: 65304273
-node4_moved: local: 7068, cxl: 17907245
-node16_moved: local: 3408, cxl: 3999941
-node48_moved: local: 787, cxl: 562778
-node256_moved: local: 5, cxl: 1
-# found: 114000094, total_val: 6964368919314321
-ops: 121.07
-
-========= starting email_workloadc_3 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=3
-insert: 48.97
-leaf_moved: local: 5856, cxl: 65304273
-node4_moved: local: 7068, cxl: 17907245
-node16_moved: local: 3408, cxl: 3999941
-node48_moved: local: 787, cxl: 562778
-node256_moved: local: 5, cxl: 1
-# found: 120000000, total_val: 8384873984760731
-ops: 118.76
-
-========= starting email_workloadd_3 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=3
-insert: 48.99
-leaf_moved: local: 5856, cxl: 65304273
-node4_moved: local: 7068, cxl: 17907245
-node16_moved: local: 3408, cxl: 3999941
-node48_moved: local: 787, cxl: 562778
-node256_moved: local: 5, cxl: 1
-# found: 113996048, total_val: 7560991528224411
-ops: 79.58
-
-========= starting email_workloadla_3 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=3
-insert: 3.46
-leaf_moved: local: 1382, cxl: 9960947
-node4_moved: local: 1325, cxl: 2785288
-node16_moved: local: 390, cxl: 614308
-node48_moved: local: 58, cxl: 81173
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 91.32
-
-========== Building 6 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=6 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 6 tests ==========
-
-========= starting email_workloada_6 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=6
-insert: 48.99
-leaf_moved: local: 164169, cxl: 65145960
-node4_moved: local: 109338, cxl: 17804975
-node16_moved: local: 24833, cxl: 3978516
-node48_moved: local: 4842, cxl: 558723
-node256_moved: local: 5, cxl: 1
-# found: 59998488, total_val: 3482029539445722
-ops: 120.63
-
-========= starting email_workloadb_6 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=6
-insert: 49.02
-leaf_moved: local: 164169, cxl: 65145960
-node4_moved: local: 109338, cxl: 17804975
-node16_moved: local: 24833, cxl: 3978516
-node48_moved: local: 4842, cxl: 558723
-node256_moved: local: 5, cxl: 1
-# found: 114000094, total_val: 6964368919314321
-ops: 120.91
-
-========= starting email_workloadc_6 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=6
-insert: 48.97
-leaf_moved: local: 164169, cxl: 65145960
-node4_moved: local: 109338, cxl: 17804975
-node16_moved: local: 24833, cxl: 3978516
-node48_moved: local: 4842, cxl: 558723
-node256_moved: local: 5, cxl: 1
-# found: 120000000, total_val: 8384873984760731
-ops: 118.64
-
-========= starting email_workloadd_6 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=6
-insert: 48.98
-leaf_moved: local: 164169, cxl: 65145960
-node4_moved: local: 109338, cxl: 17804975
-node16_moved: local: 24833, cxl: 3978516
-node48_moved: local: 4842, cxl: 558723
-node256_moved: local: 5, cxl: 1
-# found: 113996048, total_val: 7560991528224411
-ops: 79.53
-
-========= starting email_workloadla_6 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=6
-insert: 3.46
-leaf_moved: local: 13395, cxl: 9948934
-node4_moved: local: 8810, cxl: 2777803
-node16_moved: local: 2092, cxl: 612606
-node48_moved: local: 294, cxl: 80937
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 91.31
-
-
-========== Building 9 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=9 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 9 tests ==========
-
-========= starting email_workloada_9 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=9
-insert: 48.96
-leaf_moved: local: 1202422, cxl: 64107707
-node4_moved: local: 693651, cxl: 17220662
-node16_moved: local: 162330, cxl: 3841019
-node48_moved: local: 24636, cxl: 538929
-node256_moved: local: 5, cxl: 1
-# found: 59998488, total_val: 3482029539445722
-ops: 120.18
-
-========= starting email_workloadb_9 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=9
-insert: 48.96
-leaf_moved: local: 1202422, cxl: 64107707
-node4_moved: local: 693651, cxl: 17220662
-node16_moved: local: 162330, cxl: 3841019
-node48_moved: local: 24636, cxl: 538929
-node256_moved: local: 5, cxl: 1
-# found: 114000094, total_val: 6964368919314321
-ops: 120.55
-
-========= starting email_workloadc_9 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=9
-insert: 48.96
-leaf_moved: local: 1202422, cxl: 64107707
-node4_moved: local: 693651, cxl: 17220662
-node16_moved: local: 162330, cxl: 3841019
-node48_moved: local: 24636, cxl: 538929
-node256_moved: local: 5, cxl: 1
-# found: 120000000, total_val: 8384873984760731
-ops: 118.30
-
-========= starting email_workloadd_9 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=9
-insert: 48.98
-leaf_moved: local: 1202422, cxl: 64107707
-node4_moved: local: 693651, cxl: 17220662
-node16_moved: local: 162330, cxl: 3841019
-node48_moved: local: 24636, cxl: 538929
-node256_moved: local: 5, cxl: 1
-# found: 113996048, total_val: 7560991528224411
-ops: 79.36
-
-========= starting email_workloadla_9 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=9
-insert: 3.46
-leaf_moved: local: 94615, cxl: 9867714
-node4_moved: local: 63090, cxl: 2723523
-node16_moved: local: 21275, cxl: 593423
-node48_moved: local: 4154, cxl: 77077
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 91.25
-
-
-========== Building 12 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=12 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 12 tests ==========
-
-========= starting email_workloada_12 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=12
-insert: 48.97
-leaf_moved: local: 6573276, cxl: 58736853
-node4_moved: local: 2894252, cxl: 15020061
-node16_moved: local: 790299, cxl: 3213050
-node48_moved: local: 174224, cxl: 389341
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 117.49
-
-========= starting email_workloadb_12 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=12
-insert: 48.97
-leaf_moved: local: 6573276, cxl: 58736853
-node4_moved: local: 2894252, cxl: 15020061
-node16_moved: local: 790299, cxl: 3213050
-node48_moved: local: 174224, cxl: 389341
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 117.93
-
-========= starting email_workloadc_12 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=12
-insert: 48.97
-leaf_moved: local: 6573276, cxl: 58736853
-node4_moved: local: 2894252, cxl: 15020061
-node16_moved: local: 790299, cxl: 3213050
-node48_moved: local: 174224, cxl: 389341
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 115.62
-
-========= starting email_workloadd_12 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=12
-insert: 48.97
-leaf_moved: local: 6573276, cxl: 58736853
-node4_moved: local: 2894252, cxl: 15020061
-node16_moved: local: 790299, cxl: 3213050
-node48_moved: local: 174224, cxl: 389341
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 77.76
-
-========= starting email_workloadla_12 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=12
-insert: 3.45
-leaf_moved: local: 1076748, cxl: 8885581
-node4_moved: local: 433859, cxl: 2352754
-node16_moved: local: 158852, cxl: 455846
-node48_moved: local: 35101, cxl: 46130
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 90.77
-
-
-========== Building 15 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=15 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 15 tests ==========
-
-========= starting email_workloada_15 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=15
-insert: 48.95
-leaf_moved: local: 25492299, cxl: 39817830
-node4_moved: local: 8591288, cxl: 9323025
-node16_moved: local: 1972257, cxl: 2031092
-node48_moved: local: 384719, cxl: 178846
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 112.99
-
-========= starting email_workloadb_15 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=15
-insert: 48.97
-leaf_moved: local: 25492299, cxl: 39817830
-node4_moved: local: 8591288, cxl: 9323025
-node16_moved: local: 1972257, cxl: 2031092
-node48_moved: local: 384719, cxl: 178846
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 113.28
-
-========= starting email_workloadc_15 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=15
-insert: 48.93
-leaf_moved: local: 25492299, cxl: 39817830
-node4_moved: local: 8591288, cxl: 9323025
-node16_moved: local: 1972257, cxl: 2031092
-node48_moved: local: 384719, cxl: 178846
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 111.04
-
-========= starting email_workloadd_15 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=15
-insert: 48.95
-leaf_moved: local: 25492299, cxl: 39817830
-node4_moved: local: 8591288, cxl: 9323025
-node16_moved: local: 1972257, cxl: 2031092
-node48_moved: local: 384719, cxl: 178846
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 73.55
-
-========= starting email_workloadla_15 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=15
-insert: 3.46
-leaf_moved: local: 4346749, cxl: 5615580
-node4_moved: local: 1355820, cxl: 1430793
-node16_moved: local: 332807, cxl: 281891
-node48_moved: local: 56513, cxl: 24718
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 90.29
-
-
-========== Building 18 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=18 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 18 tests ==========
-
-========= starting email_workloada_18 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=18
-insert: 48.94
-leaf_moved: local: 47052670, cxl: 18257459
-node4_moved: local: 14319729, cxl: 3594584
-node16_moved: local: 3227274, cxl: 776075
-node48_moved: local: 534159, cxl: 29406
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 108.47
-
-========= starting email_workloadb_18 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=18
-insert: 48.94
-leaf_moved: local: 47052670, cxl: 18257459
-node4_moved: local: 14319729, cxl: 3594584
-node16_moved: local: 3227274, cxl: 776075
-node48_moved: local: 534159, cxl: 29406
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 108.96
-
-========= starting email_workloadc_18 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=18
-insert: 48.93
-leaf_moved: local: 47052670, cxl: 18257459
-node4_moved: local: 14319729, cxl: 3594584
-node16_moved: local: 3227274, cxl: 776075
-node48_moved: local: 534159, cxl: 29406
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 106.88
-
-========= starting email_workloadd_18 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=18
-insert: 48.94
-leaf_moved: local: 47052670, cxl: 18257459
-node4_moved: local: 14319729, cxl: 3594584
-node16_moved: local: 3227274, cxl: 776075
-node48_moved: local: 534159, cxl: 29406
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 70.79
-
-========= starting email_workloadla_18 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=18
-insert: 3.45
-leaf_moved: local: 7492771, cxl: 2469558
-node4_moved: local: 2261815, cxl: 524798
-node16_moved: local: 532276, cxl: 82422
-node48_moved: local: 77352, cxl: 3879
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.91
-
-
-========== Building 21 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=21 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 21 tests ==========
-
-========= starting email_workloada_21 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=21
-insert: 48.94
-leaf_moved: local: 60319326, cxl: 4990803
-node4_moved: local: 17243133, cxl: 671180
-node16_moved: local: 3837583, cxl: 165766
-node48_moved: local: 561862, cxl: 1703
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 106.23
-
-========= starting email_workloadb_21 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=21
-insert: 48.95
-leaf_moved: local: 60319326, cxl: 4990803
-node4_moved: local: 17243133, cxl: 671180
-node16_moved: local: 3837583, cxl: 165766
-node48_moved: local: 561862, cxl: 1703
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 106.70
-
-========= starting email_workloadc_21 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=21
-insert: 48.95
-leaf_moved: local: 60319326, cxl: 4990803
-node4_moved: local: 17243133, cxl: 671180
-node16_moved: local: 3837583, cxl: 165766
-node48_moved: local: 561862, cxl: 1703
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 104.48
-
-========= starting email_workloadd_21 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=21
-insert: 48.93
-leaf_moved: local: 60319326, cxl: 4990803
-node4_moved: local: 17243133, cxl: 671180
-node16_moved: local: 3837583, cxl: 165766
-node48_moved: local: 561862, cxl: 1703
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 69.88
-
-========= starting email_workloadla_21 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=21
-insert: 3.45
-leaf_moved: local: 9489624, cxl: 472705
-node4_moved: local: 2704757, cxl: 81856
-node16_moved: local: 605275, cxl: 9423
-node48_moved: local: 80981, cxl: 250
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.69
-
-
-========== Building 24 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=24 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 24 tests ==========
-
-========= starting email_workloada_24 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=24
-insert: 48.96
-leaf_moved: local: 64642568, cxl: 667561
-node4_moved: local: 17886696, cxl: 27617
-node16_moved: local: 3996708, cxl: 6641
-node48_moved: local: 563514, cxl: 51
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 105.80
-
-========= starting email_workloadb_24 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=24
-insert: 48.96
-leaf_moved: local: 64642568, cxl: 667561
-node4_moved: local: 17886696, cxl: 27617
-node16_moved: local: 3996708, cxl: 6641
-node48_moved: local: 563514, cxl: 51
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 106.22
-
-========= starting email_workloadc_24 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=24
-insert: 48.95
-leaf_moved: local: 64642568, cxl: 667561
-node4_moved: local: 17886696, cxl: 27617
-node16_moved: local: 3996708, cxl: 6641
-node48_moved: local: 563514, cxl: 51
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 103.96
-
-========= starting email_workloadd_24 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=24
-insert: 48.95
-leaf_moved: local: 64642568, cxl: 667561
-node4_moved: local: 17886696, cxl: 27617
-node16_moved: local: 3996708, cxl: 6641
-node48_moved: local: 563514, cxl: 51
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 69.74
-
-========= starting email_workloadla_24 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=24
-insert: 3.46
-leaf_moved: local: 9923219, cxl: 39110
-node4_moved: local: 2781006, cxl: 5607
-node16_moved: local: 614459, cxl: 239
-node48_moved: local: 81228, cxl: 3
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.76
-
-
-========== Building 27 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=27 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 27 tests ==========
-
-========= starting email_workloada_27 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=27
-insert: 48.95
-leaf_moved: local: 65304728, cxl: 5401
-node4_moved: local: 17913778, cxl: 535
-node16_moved: local: 4003323, cxl: 26
-node48_moved: local: 563564, cxl: 1
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 105.72
-
-========= starting email_workloadb_27 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=27
-insert: 48.95
-leaf_moved: local: 65304728, cxl: 5401
-node4_moved: local: 17913778, cxl: 535
-node16_moved: local: 4003323, cxl: 26
-node48_moved: local: 563564, cxl: 1
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 106.11
-
-========= starting email_workloadc_27 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=27
-insert: 48.96
-leaf_moved: local: 65304728, cxl: 5401
-node4_moved: local: 17913778, cxl: 535
-node16_moved: local: 4003323, cxl: 26
-node48_moved: local: 563564, cxl: 1
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 103.96
-
-========= starting email_workloadd_27 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=27
-insert: 48.95
-leaf_moved: local: 65304728, cxl: 5401
-node4_moved: local: 17913778, cxl: 535
-node16_moved: local: 4003323, cxl: 26
-node48_moved: local: 563564, cxl: 1
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 69.68
-
-========= starting email_workloadla_27 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=27
-insert: 3.45
-leaf_moved: local: 9961710, cxl: 619
-node4_moved: local: 2786560, cxl: 53
-node16_moved: local: 614683, cxl: 15
-node48_moved: local: 81231, cxl: 0
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.70
-
-
-========== Building 30 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=30 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 30 tests ==========
-
-========= starting email_workloada_30 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=30
-insert: 48.95
-leaf_moved: local: 65310089, cxl: 40
-node4_moved: local: 17914311, cxl: 2
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 105.67
-
-========= starting email_workloadb_30 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=30
-insert: 48.95
-leaf_moved: local: 65310089, cxl: 40
-node4_moved: local: 17914311, cxl: 2
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 106.10
-
-========= starting email_workloadc_30 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=30
-insert: 48.95
-leaf_moved: local: 65310089, cxl: 40
-node4_moved: local: 17914311, cxl: 2
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 103.99
-
-========= starting email_workloadd_30 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=30
-insert: 48.94
-leaf_moved: local: 65310089, cxl: 40
-node4_moved: local: 17914311, cxl: 2
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 69.70
-
-========= starting email_workloadla_30 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=30
-insert: 3.46
-leaf_moved: local: 9962329, cxl: 0
-node4_moved: local: 2786613, cxl: 0
-node16_moved: local: 614698, cxl: 0
-node48_moved: local: 81231, cxl: 0
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.72
-
-========== Building 33 ==========
-rm -rf src/libart.so src/libart.o
-gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=33 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
-gcc -shared -o src/libart.so src/libart.o
-mkdir -p /usr/local/lib
-mkdir -p /usr/local/include
-cp src/libart.so /usr/local/lib/libart.so
-chmod 555 /usr/local/lib/libart.so
-cp src/art.h /usr/local/include/art.h
-chmod 444 /usr/local/include/art.h
-
-========== Running 33 tests ==========
-
-========= starting email_workloada_33 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=33
-insert: 48.94
-leaf_moved: local: 65310129, cxl: 0
-node4_moved: local: 17914313, cxl: 0
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 59998488, total_val: 3482029539445722
-ops: 105.70
-
-========= starting email_workloadb_33 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=33
-insert: 48.94
-leaf_moved: local: 65310129, cxl: 0
-node4_moved: local: 17914313, cxl: 0
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 114000094, total_val: 6964368919314321
-ops: 106.13
-
-========= starting email_workloadc_33 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=33
-insert: 48.95
-leaf_moved: local: 65310129, cxl: 0
-node4_moved: local: 17914313, cxl: 0
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 120000000, total_val: 8384873984760731
-ops: 103.95
-
-========= starting email_workloadd_33 ==========
-3
-Loaded 120000000 keys
-Loaded 120000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=33
-insert: 48.96
-leaf_moved: local: 65310129, cxl: 0
-node4_moved: local: 17914313, cxl: 0
-node16_moved: local: 4003349, cxl: 0
-node48_moved: local: 563565, cxl: 0
-node256_moved: local: 6, cxl: 0
-# found: 113996048, total_val: 7560991528224411
-ops: 69.71
-
-========= starting email_workloadla_33 ==========
-3
-Loaded 10000000 keys
-Loaded 240000000 ops
-LEAF_CXL=0
-NODE4_CXL=0
-NODE16_CXL=0
-NODE48_CXL=0
-NODE256_CXL=0
-DEPTH_THRESH=33
-insert: 3.46
-leaf_moved: local: 9962329, cxl: 0
-node4_moved: local: 2786613, cxl: 0
-node16_moved: local: 614698, cxl: 0
-node48_moved: local: 81231, cxl: 0
-node256_moved: local: 0, cxl: 0
-# found: 0, total_val: 0
-ops: 89.74
-
 --------------- randint ---------------
 
 ========== Building 0 ==========
@@ -3047,3 +1850,1371 @@ Node Type 4: 181,291,137.59
 Node Type 16: 94,756,046.08
 Node Type 48: 27,706,002.48
 Node Type 256: 6,246.96
+
+
+--------------- email -------------------
+
+========== Building 0 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=0 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 0 tests ==========
+
+========= starting email_workloadla_0 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=0
+insert: 3.46
+leaf_moved: local: 0, cxl: 9962329
+node4_moved: local: 0, cxl: 2786613
+node16_moved: local: 0, cxl: 614698
+node48_moved: local: 0, cxl: 81231
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 91.12
+
+========== Building 3 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=3 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 3 tests ==========
+
+
+========= starting email_workloadla_3 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=3
+insert: 3.46
+leaf_moved: local: 138, cxl: 9962191
+node4_moved: local: 285, cxl: 2786328
+node16_moved: local: 199, cxl: 614499
+node48_moved: local: 35, cxl: 81196
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 91.31
+
+========== Building 6 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=6 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 6 tests ==========
+
+
+========= starting email_workloadla_6 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=6
+insert: 3.46
+leaf_moved: local: 7743, cxl: 9954586
+node4_moved: local: 5348, cxl: 2781265
+node16_moved: local: 1053, cxl: 613645
+node48_moved: local: 157, cxl: 81074
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 91.05
+
+========== Building 9 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=9 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 9 tests ==========
+
+
+========= starting email_workloadla_9 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=9
+insert: 3.46
+leaf_moved: local: 43395, cxl: 9918934
+node4_moved: local: 28120, cxl: 2758493
+node16_moved: local: 7016, cxl: 607682
+node48_moved: local: 2314, cxl: 78917
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 91.17
+
+========== Building 12 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=12 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 12 tests ==========
+
+========= starting email_workloadla_12 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=12
+insert: 3.46
+leaf_moved: local: 505861, cxl: 9456468
+node4_moved: local: 197473, cxl: 2589140
+node16_moved: local: 74775, cxl: 539923
+node48_moved: local: 23380, cxl: 57851
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 90.55
+
+========== Building 15 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=15 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 15 tests ==========
+
+========= starting email_workloada_15 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=15
+insert: 48.86
+leaf_moved: local: 18652241, cxl: 46657888
+node4_moved: local: 6719063, cxl: 11195250
+node16_moved: local: 1603151, cxl: 2400198
+node48_moved: local: 314863, cxl: 248702
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 118.73
+
+========= starting email_workloadb_15 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=15
+insert: 48.83
+leaf_moved: local: 18652241, cxl: 46657888
+node4_moved: local: 6719063, cxl: 11195250
+node16_moved: local: 1603151, cxl: 2400198
+node48_moved: local: 314863, cxl: 248702
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 119.80
+
+========= starting email_workloadc_15 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=15
+insert: 48.83
+leaf_moved: local: 18652241, cxl: 46657888
+node4_moved: local: 6719063, cxl: 11195250
+node16_moved: local: 1603151, cxl: 2400198
+node48_moved: local: 314863, cxl: 248702
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 117.60
+
+========= starting email_workloadd_15 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=15
+insert: 48.84
+leaf_moved: local: 18652241, cxl: 46657888
+node4_moved: local: 6719063, cxl: 11195250
+node16_moved: local: 1603151, cxl: 2400198
+node48_moved: local: 314863, cxl: 248702
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 76.95
+
+========= starting email_workloadla_15 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=15
+insert: 3.46
+leaf_moved: local: 3373366, cxl: 6588963
+node4_moved: local: 1101155, cxl: 1685458
+node16_moved: local: 284873, cxl: 329825
+node48_moved: local: 47426, cxl: 33805
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 90.00
+
+========== Building 18 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=18 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 18 tests ==========
+
+========= starting email_workloada_18 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=18
+insert: 48.84
+leaf_moved: local: 39860366, cxl: 25449763
+node4_moved: local: 12508925, cxl: 5405388
+node16_moved: local: 2891468, cxl: 1111881
+node48_moved: local: 505538, cxl: 58027
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 110.50
+
+========= starting email_workloadb_18 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=18
+insert: 48.83
+leaf_moved: local: 39860366, cxl: 25449763
+node4_moved: local: 12508925, cxl: 5405388
+node16_moved: local: 2891468, cxl: 1111881
+node48_moved: local: 505538, cxl: 58027
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 111.51
+
+========= starting email_workloadc_18 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=18
+insert: 48.84
+leaf_moved: local: 39860366, cxl: 25449763
+node4_moved: local: 12508925, cxl: 5405388
+node16_moved: local: 2891468, cxl: 1111881
+node48_moved: local: 505538, cxl: 58027
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 109.33
+
+========= starting email_workloadd_18 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=18
+insert: 48.84
+leaf_moved: local: 39860366, cxl: 25449763
+node4_moved: local: 12508925, cxl: 5405388
+node16_moved: local: 2891468, cxl: 1111881
+node48_moved: local: 505538, cxl: 58027
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 72.06
+
+========= starting email_workloadla_18 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=18
+insert: 3.46
+leaf_moved: local: 6299923, cxl: 3662406
+node4_moved: local: 1973338, cxl: 813275
+node16_moved: local: 482496, cxl: 132202
+node48_moved: local: 73412, cxl: 7819
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 89.37
+
+========== Building 21 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=21 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 21 tests ==========
+
+========= starting email_workloada_21 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=21
+insert: 48.84
+leaf_moved: local: 57335611, cxl: 7974518
+node4_moved: local: 16658692, cxl: 1255621
+node16_moved: local: 3650927, cxl: 352422
+node48_moved: local: 558653, cxl: 4912
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 106.69
+
+========= starting email_workloadb_21 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=21
+insert: 48.84
+leaf_moved: local: 57335611, cxl: 7974518
+node4_moved: local: 16658692, cxl: 1255621
+node16_moved: local: 3650927, cxl: 352422
+node48_moved: local: 558653, cxl: 4912
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 107.67
+
+========= starting email_workloadc_21 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=21
+insert: 48.83
+leaf_moved: local: 57335611, cxl: 7974518
+node4_moved: local: 16658692, cxl: 1255621
+node16_moved: local: 3650927, cxl: 352422
+node48_moved: local: 558653, cxl: 4912
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 105.53
+
+========= starting email_workloadd_21 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=21
+insert: 48.82
+leaf_moved: local: 57335611, cxl: 7974518
+node4_moved: local: 16658692, cxl: 1255621
+node16_moved: local: 3650927, cxl: 352422
+node48_moved: local: 558653, cxl: 4912
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 70.41
+
+========= starting email_workloadla_21 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=21
+insert: 3.46
+leaf_moved: local: 9052672, cxl: 909657
+node4_moved: local: 2618055, cxl: 168558
+node16_moved: local: 592968, cxl: 21730
+node48_moved: local: 80530, cxl: 701
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 88.95
+
+========== Building 24 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=24 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 24 tests ==========
+
+========= starting email_workloada_24 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=24
+insert: 48.85
+leaf_moved: local: 64016661, cxl: 1293468
+node4_moved: local: 17806286, cxl: 108027
+node16_moved: local: 3938837, cxl: 64512
+node48_moved: local: 563391, cxl: 174
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 105.81
+
+========= starting email_workloadb_24 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=24
+insert: 48.86
+leaf_moved: local: 64016661, cxl: 1293468
+node4_moved: local: 17806286, cxl: 108027
+node16_moved: local: 3938837, cxl: 64512
+node48_moved: local: 563391, cxl: 174
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 106.74
+
+========= starting email_workloadc_24 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=24
+insert: 48.84
+leaf_moved: local: 64016661, cxl: 1293468
+node4_moved: local: 17806286, cxl: 108027
+node16_moved: local: 3938837, cxl: 64512
+node48_moved: local: 563391, cxl: 174
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 104.67
+
+========= starting email_workloadd_24 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=24
+insert: 48.84
+leaf_moved: local: 64016661, cxl: 1293468
+node4_moved: local: 17806286, cxl: 108027
+node16_moved: local: 3938837, cxl: 64512
+node48_moved: local: 563391, cxl: 174
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 70.02
+
+========= starting email_workloadla_24 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=24
+insert: 3.46
+leaf_moved: local: 9865242, cxl: 97087
+node4_moved: local: 2770256, cxl: 16357
+node16_moved: local: 613588, cxl: 1110
+node48_moved: local: 81227, cxl: 4
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 88.97
+
+========== Building 27 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=27 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 27 tests ==========
+
+========= starting email_workloada_27 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=27
+insert: 48.86
+leaf_moved: local: 65291036, cxl: 19093
+node4_moved: local: 17912024, cxl: 2289
+node16_moved: local: 4003251, cxl: 98
+node48_moved: local: 563559, cxl: 6
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 105.45
+
+========= starting email_workloadb_27 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=27
+insert: 48.84
+leaf_moved: local: 65291036, cxl: 19093
+node4_moved: local: 17912024, cxl: 2289
+node16_moved: local: 4003251, cxl: 98
+node48_moved: local: 563559, cxl: 6
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 106.52
+
+========= starting email_workloadc_27 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=27
+insert: 48.83
+leaf_moved: local: 65291036, cxl: 19093
+node4_moved: local: 17912024, cxl: 2289
+node16_moved: local: 4003251, cxl: 98
+node48_moved: local: 563559, cxl: 6
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 104.50
+
+========= starting email_workloadd_27 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=27
+insert: 48.84
+leaf_moved: local: 65291036, cxl: 19093
+node4_moved: local: 17912024, cxl: 2289
+node16_moved: local: 4003251, cxl: 98
+node48_moved: local: 563559, cxl: 6
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 69.96
+
+========= starting email_workloadla_27 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=27
+insert: 3.46
+leaf_moved: local: 9959253, cxl: 3076
+node4_moved: local: 2786373, cxl: 240
+node16_moved: local: 614682, cxl: 16
+node48_moved: local: 81229, cxl: 2
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 89.09
+
+========== Building 30 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=30 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 30 tests ==========
+
+========= starting email_workloada_30 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=30
+insert: 48.83
+leaf_moved: local: 65309903, cxl: 226
+node4_moved: local: 17914294, cxl: 19
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 105.68
+
+========= starting email_workloadb_30 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=30
+insert: 48.83
+leaf_moved: local: 65309903, cxl: 226
+node4_moved: local: 17914294, cxl: 19
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 106.50
+
+========= starting email_workloadc_30 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=30
+insert: 48.84
+leaf_moved: local: 65309903, cxl: 226
+node4_moved: local: 17914294, cxl: 19
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 104.42
+
+========= starting email_workloadd_30 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=30
+insert: 48.84
+leaf_moved: local: 65309903, cxl: 226
+node4_moved: local: 17914294, cxl: 19
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 69.94
+
+========= starting email_workloadla_30 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=30
+insert: 3.46
+leaf_moved: local: 9962289, cxl: 40
+node4_moved: local: 2786613, cxl: 0
+node16_moved: local: 614698, cxl: 0
+node48_moved: local: 81231, cxl: 0
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 89.07
+
+========== Building 33 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=33 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 33 tests ==========
+
+========= starting email_workloada_33 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=33
+insert: 48.83
+leaf_moved: local: 65310129, cxl: 0
+node4_moved: local: 17914313, cxl: 0
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 105.46
+
+========= starting email_workloadb_33 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=33
+insert: 48.83
+leaf_moved: local: 65310129, cxl: 0
+node4_moved: local: 17914313, cxl: 0
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 106.48
+
+========= starting email_workloadc_33 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=33
+insert: 48.83
+leaf_moved: local: 65310129, cxl: 0
+node4_moved: local: 17914313, cxl: 0
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 104.42
+
+========= starting email_workloadd_33 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=33
+insert: 48.82
+leaf_moved: local: 65310129, cxl: 0
+node4_moved: local: 17914313, cxl: 0
+node16_moved: local: 4003349, cxl: 0
+node48_moved: local: 563565, cxl: 0
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 69.90
+
+========= starting email_workloadla_33 ==========
+3
+Loaded 10000000 keys
+Loaded 240000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=33
+insert: 3.46
+leaf_moved: local: 9962329, cxl: 0
+node4_moved: local: 2786613, cxl: 0
+node16_moved: local: 614698, cxl: 0
+node48_moved: local: 81231, cxl: 0
+node256_moved: local: 0, cxl: 0
+# found: 0, total_val: 0
+ops: 88.98
+
+
+========== Building 0 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=0 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 0 tests ==========
+
+========= starting email_workloada_0 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=0
+insert: 48.88
+leaf_moved: local: 0, cxl: 65310129
+node4_moved: local: 0, cxl: 17914313
+node16_moved: local: 0, cxl: 4003349
+node48_moved: local: 0, cxl: 563565
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 133.23
+
+========= starting email_workloadb_0 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=0
+insert: 48.91
+leaf_moved: local: 0, cxl: 65310129
+node4_moved: local: 0, cxl: 17914313
+node16_moved: local: 0, cxl: 4003349
+node48_moved: local: 0, cxl: 563565
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 134.35
+
+========= starting email_workloadc_0 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=0
+insert: 48.91
+leaf_moved: local: 0, cxl: 65310129
+node4_moved: local: 0, cxl: 17914313
+node16_moved: local: 0, cxl: 4003349
+node48_moved: local: 0, cxl: 563565
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 132.13
+
+========= starting email_workloadd_0 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=0
+insert: 48.91
+leaf_moved: local: 0, cxl: 65310129
+node4_moved: local: 0, cxl: 17914313
+node16_moved: local: 0, cxl: 4003349
+node48_moved: local: 0, cxl: 563565
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 85.95
+
+========== Building 3 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=3 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 3 tests ==========
+
+========= starting email_workloada_3 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=3
+insert: 48.91
+leaf_moved: local: 189, cxl: 65309940
+node4_moved: local: 386, cxl: 17913927
+node16_moved: local: 526, cxl: 4002823
+node48_moved: local: 426, cxl: 563139
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 133.43
+
+========= starting email_workloadb_3 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=3
+insert: 48.89
+leaf_moved: local: 189, cxl: 65309940
+node4_moved: local: 386, cxl: 17913927
+node16_moved: local: 526, cxl: 4002823
+node48_moved: local: 426, cxl: 563139
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 134.56
+
+========= starting email_workloadc_3 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=3
+insert: 48.92
+leaf_moved: local: 189, cxl: 65309940
+node4_moved: local: 386, cxl: 17913927
+node16_moved: local: 526, cxl: 4002823
+node48_moved: local: 426, cxl: 563139
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 132.25
+
+========= starting email_workloadd_3 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=3
+insert: 48.90
+leaf_moved: local: 189, cxl: 65309940
+node4_moved: local: 386, cxl: 17913927
+node16_moved: local: 526, cxl: 4002823
+node48_moved: local: 426, cxl: 563139
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 86.14
+
+========== Building 6 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=6 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 6 tests ==========
+
+========= starting email_workloada_6 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=6
+insert: 48.91
+leaf_moved: local: 81050, cxl: 65229079
+node4_moved: local: 57925, cxl: 17856388
+node16_moved: local: 14339, cxl: 3989010
+node48_moved: local: 2098, cxl: 561467
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 133.02
+
+========= starting email_workloadb_6 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=6
+insert: 48.91
+leaf_moved: local: 81050, cxl: 65229079
+node4_moved: local: 57925, cxl: 17856388
+node16_moved: local: 14339, cxl: 3989010
+node48_moved: local: 2098, cxl: 561467
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 134.23
+
+========= starting email_workloadc_6 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=6
+insert: 48.91
+leaf_moved: local: 81050, cxl: 65229079
+node4_moved: local: 57925, cxl: 17856388
+node16_moved: local: 14339, cxl: 3989010
+node48_moved: local: 2098, cxl: 561467
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 131.88
+
+========= starting email_workloadd_6 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=6
+insert: 48.91
+leaf_moved: local: 81050, cxl: 65229079
+node4_moved: local: 57925, cxl: 17856388
+node16_moved: local: 14339, cxl: 3989010
+node48_moved: local: 2098, cxl: 561467
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 85.91
+
+========== Building 9 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=9 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 9 tests ==========
+
+========= starting email_workloada_9 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=9
+insert: 48.90
+leaf_moved: local: 640978, cxl: 64669151
+node4_moved: local: 392179, cxl: 17522134
+node16_moved: local: 98870, cxl: 3904479
+node48_moved: local: 14940, cxl: 548625
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 132.40
+
+========= starting email_workloadb_9 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=9
+insert: 48.89
+leaf_moved: local: 640978, cxl: 64669151
+node4_moved: local: 392179, cxl: 17522134
+node16_moved: local: 98870, cxl: 3904479
+node48_moved: local: 14940, cxl: 548625
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 133.75
+
+========= starting email_workloadc_9 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=9
+insert: 48.92
+leaf_moved: local: 640978, cxl: 64669151
+node4_moved: local: 392179, cxl: 17522134
+node16_moved: local: 98870, cxl: 3904479
+node48_moved: local: 14940, cxl: 548625
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 131.59
+
+========= starting email_workloadd_9 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=9
+insert: 48.90
+leaf_moved: local: 640978, cxl: 64669151
+node4_moved: local: 392179, cxl: 17522134
+node16_moved: local: 98870, cxl: 3904479
+node48_moved: local: 14940, cxl: 548625
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 85.69
+
+========== Building 12 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O3 -DDEPTH_THRESH=12 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running 12 tests ==========
+
+========= starting email_workloada_12 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=12
+insert: 48.90
+leaf_moved: local: 3507998, cxl: 61802131
+node4_moved: local: 1766507, cxl: 16147806
+node16_moved: local: 432482, cxl: 3570867
+node48_moved: local: 111396, cxl: 452169
+node256_moved: local: 6, cxl: 0
+# found: 59998488, total_val: 3482029539445722
+ops: 127.61
+
+========= starting email_workloadb_12 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=12
+insert: 48.90
+leaf_moved: local: 3507998, cxl: 61802131
+node4_moved: local: 1766507, cxl: 16147806
+node16_moved: local: 432482, cxl: 3570867
+node48_moved: local: 111396, cxl: 452169
+node256_moved: local: 6, cxl: 0
+# found: 114000094, total_val: 6964368919314321
+ops: 128.85
+
+========= starting email_workloadc_12 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=12
+insert: 48.89
+leaf_moved: local: 3507998, cxl: 61802131
+node4_moved: local: 1766507, cxl: 16147806
+node16_moved: local: 432482, cxl: 3570867
+node48_moved: local: 111396, cxl: 452169
+node256_moved: local: 6, cxl: 0
+# found: 120000000, total_val: 8384873984760731
+ops: 126.71
+
+========= starting email_workloadd_12 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+DEPTH_THRESH=12
+insert: 48.93
+leaf_moved: local: 3507998, cxl: 61802131
+node4_moved: local: 1766507, cxl: 16147806
+node16_moved: local: 432482, cxl: 3570867
+node48_moved: local: 111396, cxl: 452169
+node256_moved: local: 6, cxl: 0
+# found: 113996048, total_val: 7560991528224411
+ops: 83.17
