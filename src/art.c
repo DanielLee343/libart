@@ -338,6 +338,23 @@ static art_node **find_child(art_node *n, unsigned char c)
         art_node48 *p3;
         art_node256 *p4;
     } p;
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
     switch (n->type)
     {
     case NODE4:
@@ -667,6 +684,10 @@ static void add_child256(art_node256 *n, art_node **ref, unsigned char c, void *
     (void)ref;
     n->n.num_children++;
     n->children[c] = (art_node *)child;
+#if SELF_REF
+    if (!IS_LEAF(child))
+        ((art_node *)child)->self_ref = &n->children[c];
+#endif
 }
 
 static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *child)
@@ -680,6 +701,12 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
         n->children[pos] = (art_node *)child;
         n->keys[c] = pos + 1;
         n->n.num_children++;
+#if SELF_REF
+        if (!IS_LEAF(child_node))
+        {
+            child_node->self_ref = &n->children[pos];
+        }
+#endif
     }
     else
     {
@@ -691,10 +718,17 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
             {
                 art_node *existing_child = n->children[n->keys[i] - 1];
                 new_node->children[i] = existing_child;
+#if SELF_REF
+                if (!IS_LEAF(existing_child))
+                    existing_child->self_ref = &new_node->children[i];
+#endif
             }
         }
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
@@ -746,6 +780,10 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
 
         n->keys[idx] = c;
         n->children[idx] = child_node;
+#if SELF_REF
+        if (!IS_LEAF(child_node))
+            (child_node)->self_ref = &n->children[idx];
+#endif
         n->n.num_children++;
     }
     else
@@ -758,10 +796,17 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
             unsigned char k = n->keys[i];
             new_node->keys[k] = i + 1;
             new_node->children[i] = n->children[i];
+#if SELF_REF
+            if (!IS_LEAF(n->children[i])) // necessary, do not skip
+                ((art_node *)n->children[i])->self_ref = &new_node->children[i];
+#endif
         }
 
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 
@@ -796,20 +841,37 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
         // Insert element
         n->keys[idx] = c;
         n->children[idx] = child_node;
+#if SELF_REF
+        if (!IS_LEAF(child_node))
+            ((art_node *)child_node)->self_ref = &n->children[idx];
+#endif
         n->n.num_children++;
     }
     else
     {
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+        new_node->n.num_children = n->n.num_children; // todo: check if needed
 
         // Copy the child pointers and the key map
         memcpy(new_node->children, n->children,
                sizeof(void *) * n->n.num_children);
         memcpy(new_node->keys, n->keys,
                sizeof(unsigned char) * n->n.num_children);
+#if SELF_REF
+        for (int i = 0; i < new_node->n.num_children; i++)
+        {
+            if (!IS_LEAF(new_node->children[i]))
+            {
+                ((art_node *)new_node->children[i])->self_ref = &new_node->children[i];
+            }
+        }
+#endif
 
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
@@ -902,6 +964,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // New value, we must split the leaf into a node4
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
 
         // Create a new leaf
         art_leaf *l2 = make_leaf(key, key_len, value);
@@ -954,6 +1019,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // Create a new node
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
         *ref = (art_node *)new_node;
         new_node->n.partial_len = prefix_diff;
         memcpy(new_node->n.partial, n->partial, min(MAX_PREFIX_LEN, prefix_diff));
@@ -992,7 +1060,9 @@ RECURSE_SEARCH:;
 
     // No child, node goes within us
     art_leaf *l = make_leaf(key, key_len, value);
+    // art_node *leaf_node = (art_node *)SET_LEAF(l);
     add_child(n, ref, key[depth], SET_LEAF(l));
+    // add_child(n, ref, key[depth], (void *)leaf_node);
     return NULL;
 }
 
@@ -1041,9 +1111,11 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
     if (n->n.num_children == 37)
     {
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
-
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
 
         int pos = 0;
         for (int i = 0; i < 256; i++)
@@ -1052,7 +1124,10 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
             {
                 new_node->children[pos] = n->children[i];
                 new_node->keys[i] = pos + 1;
-
+#if SELF_REF
+                if (!IS_LEAF(new_node->children[pos]))
+                    new_node->children[pos]->self_ref = &new_node->children[pos];
+#endif
                 pos++;
             }
         }
@@ -1074,9 +1149,11 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
     if (n->n.num_children == 12)
     {
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
-
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
 
         int child = 0;
         for (int i = 0; i < 256; i++)
@@ -1086,6 +1163,10 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
             {
                 new_node->keys[child] = i;
                 new_node->children[child] = n->children[pos - 1];
+#if SELF_REF
+                if (!IS_LEAF(new_node->children[child]))
+                    new_node->children[child]->self_ref = &new_node->children[child];
+#endif
 
                 child++;
             }
@@ -1118,9 +1199,19 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
 
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
+#if SELF_REF
+        ((art_node *)new_node)->self_ref = ref;
+#endif
 
         memcpy(new_node->keys, n->keys, 3); // only 3 keys remain
         memcpy(new_node->children, n->children, 3 * sizeof(void *));
+#if SELF_REF
+        for (int i = 0; i < 3; i++)
+        {
+            if (!IS_LEAF(new_node->children[i]))
+                ((art_node *)new_node->children[i])->self_ref = &new_node->children[i];
+        }
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
@@ -1164,6 +1255,10 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
             child->partial_len += n->n.partial_len + 1;
         }
         *ref = child;
+#if SELF_REF
+        if (!IS_LEAF(child))
+            child->self_ref = ref;
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
@@ -1310,10 +1405,29 @@ static int recursive_iter(art_node *n, art_callback cb, void *data)
         return 0;
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         art_leaf *l = LEAF_RAW(n);
         return cb(data, (const unsigned char *)l->key, l->key_len, l->value);
     }
-
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
     int idx, res;
     switch (n->type)
     {
@@ -2138,16 +2252,33 @@ art_node *tiered_calloc(bool *local_full,
 
     return ptr;
 }
-static int compare_hit_cnt(const void *a, const void *b)
+static int sort_descending(const void *a, const void *b)
 {
     const art_node *na = *(const art_node **)a;
     const art_node *nb = *(const art_node **)b;
-    return nb->hit_cnt - na->hit_cnt; // descending order, for ascending is a - b
+    return nb->hit_cnt - na->hit_cnt;
 }
-void sort_hotness(void **alloced_nodes, int alloced_cnt)
+static int sort_ascending(const void *a, const void *b)
+{
+    const art_node *na = *(const art_node **)a;
+    const art_node *nb = *(const art_node **)b;
+    return na->hit_cnt - nb->hit_cnt;
+}
+void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending)
 {
     printf("sorting total %d\n", alloced_cnt);
-    qsort(alloced_nodes, alloced_cnt, sizeof(void *), compare_hit_cnt);
+    if (descending)
+        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_descending);
+    else
+        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_ascending);
+    printf("sort result: \n");
+    // for (int i = 0; i < alloced_cnt; i++)
+    // {
+    //     printf("node[%d] = %p, hit_cnt = %d\n",
+    //            i,
+    //            alloced_nodes[i],
+    //            ((art_node *)alloced_nodes[i])->hit_cnt);
+    // }
 }
 
 static void swap_art_nodes(art_node **n0, art_node **n1)

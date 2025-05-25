@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "art.h"
 
 #define MAX_KEYS 120000000
@@ -162,7 +163,7 @@ int main(int argc, char *argv[])
     ops_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
     {
-        // node_cnt_stat();
+        node_cnt_stat();
         // node_hit_cnt_total();
         // char hit_cnt_path[64];
         // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
@@ -341,7 +342,8 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
             // fclose(hit_cnt_fd);
             // stream_counter++;
-            sort_hotness(node4_hot, node4_local_alloc_cnt);
+            // sort_hotness(node4_hot, node4_local_alloc_cnt, true);
+            // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false);
             // sort_hotness(node16_hot, node16_local_alloc_cnt);
             // sort_hotness(node48_hot, node48_local_alloc_cnt);
         }

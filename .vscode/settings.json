@@ -25,6 +25,7 @@
         "format": "c",
         "emmintrin.h": "c",
         "optional": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "string.h": "c"
     }
 }

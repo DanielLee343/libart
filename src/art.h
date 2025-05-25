@@ -45,22 +45,24 @@ extern "C"
 #define BROKEN_GCC_C99_INLINE
 #endif
 #endif
-#define CNT 0             // bookkeeping # count for diff node types
+#define CNT 1             // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
 #define DEPTH 0           // bookkeeping avg depth for diff node types
 #define HIT_DIST 1        // for # hit distribution for diff node types
 #define LEVEL_ORDER 0     // perform level traversal to collect node type composition
 #define STATIC_DIST 0     // perform static placement based on depth
 #define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
-#define ONLINE 1          // online swapping
+#define ONLINE 0          // online swapping
+#define SELF_REF 1        // adding self_ref
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
+    typedef struct art_node art_node;
     /**
      * This struct is included as part
      * of all the various node sizes
      */
-    typedef struct
+    struct art_node
     {
         uint32_t partial_len;
         uint8_t type;
@@ -72,11 +74,14 @@ extern "C"
 #if DEPTH
         int depth;
 #endif
+#if SELF_REF
+        art_node **self_ref;
+#endif
 #if ONLINE
         int idx_in_arr;
         bool in_local;
 #endif
-    } art_node;
+    };
 
     /**
      * Small node with only 4 children
@@ -269,8 +274,8 @@ inline uint64_t art_size(art_tree *t)
     unsigned long node48_hit_cnt = 0;
     unsigned long node256_hit_cnt = 0;
     unsigned long leaf_hit_cnt = 0;
-    void node_hit_cnt_total();
     void reset_node_hit_cnt_total();
+    void node_hit_cnt_total();
 #endif
 
 #if DEPTH
@@ -395,7 +400,7 @@ inline uint64_t art_size(art_tree *t)
                             size_t size,
                             void **node_hot_arr, int *hot_count,
                             void **node_cold_arr, int *cold_count);
-    void sort_hotness(void **alloced_nodes, int alloced_cnt);
+    void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending);
     static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr);
 #endif
 #ifdef __cplusplus
