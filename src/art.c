@@ -17,7 +17,8 @@
 
 // email
 #define NUM_LEAF_PAGE 772096
-#define NUM_4_PAGE 302600
+// #define NUM_4_PAGE 302600
+#define NUM_4_PAGE 570
 #define NUM_16_PAGE 203776
 #define NUM_48_PAGE 112896
 #define NUM_256_PAGE 256
@@ -165,12 +166,12 @@ int art_tree_init(art_tree *t)
     init_region(&node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE / 2, 1, &node48_cxl_kind);
     init_region(&node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, 0, &node256_local_kind);
     // init_region(&node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, 1, &node256_cxl_kind); // do not use due to jemalloc hard-limits
-    node4_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / sizeof(art_node4)) * sizeof(void *));
-    node4_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / sizeof(art_node4)) * sizeof(void *));
+    node4_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / 80) * sizeof(void *));
+    node4_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / 80) * sizeof(void *));
     node16_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE / 2) / sizeof(art_node16)) * sizeof(void *));
     node16_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE / 2) / sizeof(art_node16)) * sizeof(void *));
-    node48_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE / 2) / sizeof(art_node256)) * sizeof(void *));
-    node48_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE / 2) / sizeof(art_node256)) * sizeof(void *));
+    node48_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE / 2) / sizeof(art_node48)) * sizeof(void *));
+    node48_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE / 2) / sizeof(art_node48)) * sizeof(void *));
 #endif
     return 0;
 }
@@ -860,7 +861,7 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
 #if SELF_REF
         for (int i = 0; i < new_node->n.num_children; i++)
         {
-            if (!IS_LEAF(new_node->children[i]))
+            if (new_node->children[i] && !IS_LEAF(new_node->children[i]))
             {
                 ((art_node *)new_node->children[i])->self_ref = &new_node->children[i];
             }
@@ -1171,13 +1172,13 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
                 child++;
             }
         }
+#if ONLINE
+        update_hot_cold_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
         node48_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
 #endif
     }
 }
@@ -1208,17 +1209,17 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
 #if SELF_REF
         for (int i = 0; i < 3; i++)
         {
-            if (!IS_LEAF(new_node->children[i]))
+            if (new_node->children[i] && !IS_LEAF(new_node->children[i]))
                 ((art_node *)new_node->children[i])->self_ref = &new_node->children[i];
         }
+#endif
+#if ONLINE
+        update_hot_cold_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
 #endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
         node16_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
 #endif
     }
 }
@@ -1259,13 +1260,13 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
         if (!IS_LEAF(child))
             child->self_ref = ref;
 #endif
+#if ONLINE
+        update_hot_cold_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
+#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if CNT
         node4_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
 #endif
     }
 }
@@ -2241,8 +2242,9 @@ art_node *tiered_calloc(bool *local_full,
         ptr = (art_node *)memkind_calloc(cxl_kind, 1, size);
         if (!ptr)
         {
-            perror("tiered_calloc failed for both local and cxl kinds");
-            exit(EXIT_FAILURE);
+            char msg[256];
+            memkind_error_message(MEMKIND_ERROR_MALLOC, msg, sizeof(msg));
+            fprintf(stderr, "memkind_calloc() failed: %s\n", msg);
         }
         node_cold_arr[*cold_count] = ptr;
         ptr->idx_in_arr = *cold_count;
@@ -2264,21 +2266,48 @@ static int sort_ascending(const void *a, const void *b)
     const art_node *nb = *(const art_node **)b;
     return na->hit_cnt - nb->hit_cnt;
 }
-void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending)
+void sort_hotness(void **alloced_nodes, int alloced_cnt, bool acsending)
 {
+    printf("==========\n");
     printf("sorting total %d\n", alloced_cnt);
-    if (descending)
-        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_descending);
-    else
+    if (acsending)
         qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_ascending);
-    printf("sort result: \n");
+    else
+        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_descending);
+
+    // printf("sort result: \n");
     // for (int i = 0; i < alloced_cnt; i++)
     // {
-    //     printf("node[%d] = %p, hit_cnt = %d\n",
+    //     printf("node[%d] = %p, hit_cnt = %d, self_ref = %d\n",
     //            i,
     //            alloced_nodes[i],
-    //            ((art_node *)alloced_nodes[i])->hit_cnt);
+    //            ((art_node *)alloced_nodes[i])->hit_cnt,
+    //            ((art_node *)alloced_nodes[i])->self_ref);
     // }
+}
+void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_node_arr, int cold_node_count)
+{
+    int cur_idx = 0;
+    while (cur_idx < hot_node_count && cur_idx < cold_node_count)
+    {
+        art_node *hot_node = (art_node *)hot_node_arr[cur_idx];
+        art_node *cold_node = (art_node *)cold_node_arr[cur_idx];
+
+        // Swap content (shallow)
+        art_node tmp;
+        memcpy(&tmp, hot_node, sizeof(art_node));
+        memcpy(hot_node, cold_node, sizeof(art_node));
+        memcpy(cold_node, &tmp, sizeof(art_node));
+
+        // Swap pointer references
+        if (hot_node->self_ref)
+            *(hot_node->self_ref) = hot_node;
+        if (cold_node->self_ref)
+            *(cold_node->self_ref) = cold_node;
+
+        cur_idx++;
+    }
+    printf("successfully swapped %d\n", cur_idx);
 }
 
 static void swap_art_nodes(art_node **n0, art_node **n1)

@@ -52,7 +52,7 @@ extern "C"
 #define LEVEL_ORDER 0     // perform level traversal to collect node type composition
 #define STATIC_DIST 0     // perform static placement based on depth
 #define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
-#define ONLINE 0          // online swapping
+#define ONLINE 1          // online swapping
 #define SELF_REF 1        // adding self_ref
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
@@ -401,6 +401,7 @@ inline uint64_t art_size(art_tree *t)
                             void **node_hot_arr, int *hot_count,
                             void **node_cold_arr, int *cold_count);
     void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending);
+    void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_node_arr, int cold_node_count);
     static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr);
 #endif
 #ifdef __cplusplus
