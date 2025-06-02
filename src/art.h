@@ -45,15 +45,17 @@ extern "C"
 #define BROKEN_GCC_C99_INLINE
 #endif
 #endif
-#define CNT 1             // bookkeeping # count for diff node types
-#define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
-#define DEPTH 0           // bookkeeping avg depth for diff node types
-#define HIT_DIST 1        // for # hit distribution for diff node types
-#define LEVEL_ORDER 0     // perform level traversal to collect node type composition
-#define STATIC_DIST 0     // perform static placement based on depth
-#define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
-#define ONLINE 1          // online swapping
-#define SELF_REF 1        // adding self_ref
+#define CNT 1                 // bookkeeping # count for diff node types
+#define HIT_CNT_TOTAL 0       // bookkeeping # hit for diff node types
+#define DEPTH 0               // bookkeeping avg depth for diff node types
+#define HIT_DIST 0            // for # hit distribution for diff node types
+#define LEVEL_ORDER 0         // perform level traversal to collect node type composition
+#define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
+#define OFFLINE_REORDER_ALL 0 // perform offline reordering based on depth only
+#define STREAM_ACC_ADDR 0     // stream accessed address for each node, should only be enabled for debugging
+#define ONLINE 0              // online swapping
+#define SELF_REF 0            // adding self_ref
+#define DFS 0                 // do dfs to dump node and path hotness
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
@@ -329,7 +331,10 @@ inline uint64_t art_size(art_tree *t)
     struct memkind *node16_kind = NULL;
     struct memkind *node48_kind = NULL;
     struct memkind *node256_kind = NULL;
-#if STATIC_DIST || ONLINE
+#if DFS
+    void dfs_print_hit_cnt_path(art_node *node, int depth, int *path, void **node_path, FILE *fd);
+#endif
+#if OFFLINE_REORDER || OFFLINE_REORDER_ALL || ONLINE
     void distribute_nodes(art_node *n, art_node **ref, int curr_depth);
     void print_node_move_stat();
     // leaf
@@ -337,6 +342,11 @@ inline uint64_t art_size(art_tree *t)
     void *leaf_cxl = NULL;                  // for cxl mmaped ptr
     struct memkind *leaf_local_kind = NULL; // for local memkind ptr
     struct memkind *leaf_cxl_kind = NULL;   // for cxl memkind ptr
+    // all nodes new location
+    void *all_type_local = NULL;
+    void *all_type_cxl = NULL;
+    struct memkind *all_type_local_kind = NULL;
+    struct memkind *all_type_cxl_kind = NULL;
     // node4
     void *node4_local = NULL;
     void *node4_cxl = NULL;
@@ -368,6 +378,8 @@ inline uint64_t art_size(art_tree *t)
     int node48_moved_cxl = 0;
     int node256_moved_local = 0;
     int node256_moved_cxl = 0;
+    int all_type_moved_local = 0;
+    int all_type_moved_cxl = 0;
 #endif
 #if STREAM_ACC_ADDR
     FILE *acc_fd;

@@ -10,10 +10,11 @@
 
 #define MAX_KEYS 120000000
 #define MAX_OPS 240000000
-#define AVG_KEY_LEN 20
+#define AVG_KEY_LEN 150
 #define MAX_LINE_LEN 256
 #define LOCAL_MASK 0
 #define VAL_LOC_MASK 0
+#define MAX_DEPTH 35
 
 typedef enum
 {
@@ -54,10 +55,12 @@ int main(int argc, char *argv[])
     char input_path[128];
     char ops_path[128];
     snprintf(input_path, sizeof(input_path),
-             "/home/lyuze/workspace/ycsb/workloads_zipfian/load_%s", argv[1]);
+             "/mnt/data_bk/zipfian/load_%s", argv[1]);
+    //  "/home/lyuze/workspace/ycsb/workloads_zipfian/load_%s", argv[1]);
 
     snprintf(ops_path, sizeof(ops_path),
-             "/home/lyuze/workspace/ycsb/workloads_zipfian/txn_%s", argv[1]);
+             "/mnt/data_bk/zipfian/txn_%s", argv[1]);
+    //  "/home/lyuze/workspace/ycsb/workloads_zipfian/txn_%s", argv[1]);
     srand(42);
     if (numa_available() < 0)
     {
@@ -142,14 +145,8 @@ int main(int argc, char *argv[])
     fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
     fflush(stdout);
     {
-        // reset_node_hit_cnt_total();
-        // cooling_node_hit_cnt_individual(t.root, 0); // resets
-        // char level_stats_path[64];
-        // snprintf(level_stats_path, sizeof(level_stats_path),
-        //          "zipfian/level_stats_%s.txt", argv[1]);
-        // FILE *level_stats_fd = fopen(level_stats_path, "w");
-        // stream_level_distribution(t.root, level_stats_fd);
-        // fclose(level_stats_fd);
+        // reset_node_hit_cnt_total();                 // resets for global metadata
+        // cooling_node_hit_cnt_individual(t.root, 0); // resets for individual
         // distribute_nodes(t.root, &t.root, 0);
         // print_node_move_stat();
         // start_acc_streaming = 1;
@@ -164,6 +161,12 @@ int main(int argc, char *argv[])
     fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
     {
         node_cnt_stat();
+        // char level_stats_path[64];
+        // snprintf(level_stats_path, sizeof(level_stats_path),
+        //          "zipfian/level_stats_%s.txt", argv[1]);
+        // FILE *level_stats_fd = fopen(level_stats_path, "w");
+        // stream_level_distribution(t.root, level_stats_fd);
+        // fclose(level_stats_fd);
         // node_hit_cnt_total();
         // char hit_cnt_path[64];
         // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
@@ -177,6 +180,16 @@ int main(int argc, char *argv[])
         // collect_node_depths(t.root, 0, &stat, depth_fd);
         // print_avg_node_depths(&stat);
         // fclose(depth_fd);
+        {
+            // char hotness_path_file[128];
+            // snprintf(hotness_path_file, sizeof(hotness_path_file),
+            //          "/mnt/data_bk/hotness_depth_%s.txt", argv[1]);
+            // FILE *hotness_path = fopen(hotness_path_file, "w");
+            // int hit_cnt_path[MAX_DEPTH];
+            // void *node_path[MAX_DEPTH];
+            // dfs_print_hit_cnt_path(t.root, 0, hit_cnt_path, node_path, hotness_path);
+            // fclose(hotness_path);
+        }
     }
     fflush(stdout);
     { // for printing accessed addr
@@ -343,9 +356,9 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
             // fclose(hit_cnt_fd);
             // stream_counter++;
-            sort_hotness(node4_hot, node4_local_alloc_cnt, true);
-            sort_hotness(node4_cold, node4_cxl_alloc_cnt, false);
-            swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
+            // sort_hotness(node4_hot, node4_local_alloc_cnt, true);
+            // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false);
+            // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
             // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
             // sort_hotness(node16_hot, node16_local_alloc_cnt, true);
             // sort_hotness(node16_cold, node16_cxl_alloc_cnt, false);
