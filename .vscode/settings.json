@@ -26,6 +26,7 @@
         "emmintrin.h": "c",
         "optional": "c",
         "system_error": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "assert.h": "c"
     }
 }

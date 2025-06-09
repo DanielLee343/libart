@@ -35,6 +35,13 @@ extern "C"
 #define ALIGN_UP(ptr, align) ((void *)(((uintptr_t)(ptr) + ((align) - 1)) & ~((align) - 1)))
 #define ALIGN_UP_SIZE(size, align) (((size) + ((align) - 1)) & ~((align) - 1))
 
+/**
+ * Macros to manipulate pointer tags
+ */
+#define IS_LEAF(x) (((uintptr_t)x & 1))
+#define SET_LEAF(x) ((void *)((uintptr_t)x | 1))
+#define LEAF_RAW(x) ((art_leaf *)((void *)((uintptr_t)x & ~1)))
+
 #if defined(__GNUC__) && !defined(__clang__)
 #if __STDC_VERSION__ >= 199901L && 402 == (__GNUC__ * 100 + __GNUC_MINOR__)
 /*
@@ -45,9 +52,23 @@ extern "C"
 #define BROKEN_GCC_C99_INLINE
 #endif
 #endif
-#define CNT 1                 // bookkeeping # count for diff node types
+
+#ifndef CLFLUSH4
+#define CLFLUSH4 0
+#endif
+#ifndef CLFLUSH16
+#define CLFLUSH16 0
+#endif
+#ifndef CLFLUSH48
+#define CLFLUSH48 0
+#endif
+#ifndef CLFLUSH256
+#define CLFLUSH256 0
+#endif
+#define CNT 0                 // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0       // bookkeeping # hit for diff node types
-#define DEPTH 0               // bookkeeping avg depth for diff node types
+#define DEPTH 0               // information of node depth distribution
+#define DEPTH_INDI 0          // bookkeeping avg depth for individual node
 #define HIT_DIST 0            // for # hit distribution for diff node types
 #define LEVEL_ORDER 0         // perform level traversal to collect node type composition
 #define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
@@ -56,10 +77,12 @@ extern "C"
 #define ONLINE 0              // online swapping
 #define SELF_REF 0            // adding self_ref
 #define DFS 0                 // do dfs to dump node and path hotness
+#define VIS 0                 // visualize tree
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
     typedef struct art_node art_node;
+    // typedef struct art_leaf art_leaf;
     /**
      * This struct is included as part
      * of all the various node sizes
@@ -73,8 +96,8 @@ extern "C"
 #if HIT_DIST
         int hit_cnt;
 #endif
-#if DEPTH
-        int depth;
+#if DEPTH_INDI
+        uint32_t depth;
 #endif
 #if SELF_REF
         art_node **self_ref;
@@ -133,6 +156,9 @@ extern "C"
     {
         void *value;
         uint32_t key_len;
+#if DEPTH_INDI
+        uint32_t depth;
+#endif
         unsigned char key[];
     } art_leaf;
 
@@ -281,7 +307,7 @@ inline uint64_t art_size(art_tree *t)
 #endif
 
 #if DEPTH
-#define NODE_DEPTH(n) (((art_node *)(n))->depth)
+    // #define NODE_DEPTH(n) (((art_node *)(n))->depth)
     typedef struct
     {
         size_t node4_depth_total;
@@ -415,6 +441,9 @@ inline uint64_t art_size(art_tree *t)
     void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending);
     void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_node_arr, int cold_node_count);
     static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr);
+#endif
+#if VIS
+    void print_art_tree(FILE *out, art_node *n, int indent);
 #endif
 #ifdef __cplusplus
 }

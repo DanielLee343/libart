@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
     fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
     fflush(stdout);
     {
-        // reset_node_hit_cnt_total();                 // resets for global metadata
+        reset_node_hit_cnt_total(); // resets for global metadata
         // cooling_node_hit_cnt_individual(t.root, 0); // resets for individual
         // distribute_nodes(t.root, &t.root, 0);
         // print_node_move_stat();
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
         // FILE *level_stats_fd = fopen(level_stats_path, "w");
         // stream_level_distribution(t.root, level_stats_fd);
         // fclose(level_stats_fd);
-        // node_hit_cnt_total();
+        node_hit_cnt_total();
         // char hit_cnt_path[64];
         // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
         //          "zipfian/hit_count_%s.txt", argv[1]);

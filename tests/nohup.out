@@ -3218,3 +3218,1046 @@ node48_moved: local: 111396, cxl: 452169
 node256_moved: local: 6, cxl: 0
 # found: 113996048, total_val: 7560991528224411
 ops: 83.17
+
+
+----- node type sensitivity anal -----
+
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+insert: 2026.50
+# found: 59998488, total_val: 3482029539445722
+ops: 2698.98
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+
+========== Building flush_local_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node4 tests ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 146.61
+# found: 165840, total_val: 10154903683052
+ops: 165.96
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_cxl_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DNODE4_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node4 tests ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=1
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 179.31
+# found: 165840, total_val: 10154903683052
+ops: 196.52
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+
+========== Building flush_local_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node4 tests ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 127.27
+# found: 59998488, total_val: 3482029539445722
+ops: 178.03
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========== Building flush_cxl_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DNODE4_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node4 tests ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=1
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 167.47
+# found: 59998488, total_val: 3482029539445722
+ops: 221.29
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+
+---------- test for the rest ------------
+
+========== Building flush_local_node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH16=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node16 tests ==========
+
+========= starting email_workloada_flush_local_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 212.05
+# found: 59998488, total_val: 3482029539445722
+ops: 245.93
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_local_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 218.10
+# found: 165840, total_val: 10154903683052
+ops: 218.63
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_local_node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH48=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node48 tests ==========
+
+========= starting email_workloada_flush_local_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 1426.98
+# found: 59998488, total_val: 3482029539445722
+ops: 1666.83
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_local_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 1105.52
+# found: 165840, total_val: 10154903683052
+ops: 1216.36
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_local_node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH256=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node256 tests ==========
+
+========= starting email_workloada_flush_local_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 497.26
+# found: 59998488, total_val: 3482029539445722
+ops: 1067.20
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_local_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 1520.97
+# found: 165840, total_val: 10154903683052
+ops: 2155.70
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_local_all ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DCLFLUSH16=1 -DCLFLUSH48=1 -DCLFLUSH256=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_all tests ==========
+
+========= starting email_workloada_flush_local_all ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=1
+CLFLUSH48=1
+CLFLUSH256=1
+insert: 2053.47
+# found: 59998488, total_val: 3482029539445722
+ops: 2746.59
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_local_all ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=1
+CLFLUSH48=1
+CLFLUSH256=1
+insert: 2673.00
+# found: 165840, total_val: 10154903683052
+ops: 3358.68
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_cxl_node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH16=1 -DNODE16_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node16 tests ==========
+
+========= starting email_workloada_flush_cxl_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=1
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 336.75
+# found: 59998488, total_val: 3482029539445722
+ops: 357.75
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_cxl_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=1
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 320.29
+# found: 165840, total_val: 10154903683052
+ops: 299.50
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_cxl_node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH48=1 -DNODE48_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node48 tests ==========
+
+========= starting email_workloada_flush_cxl_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=1
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 2426.53
+# found: 59998488, total_val: 3482029539445722
+ops: 2781.51
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_cxl_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=1
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 1859.63
+# found: 165840, total_val: 10154903683052
+ops: 2028.95
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_cxl_node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH256=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node256 tests ==========
+
+========= starting email_workloada_flush_cxl_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=1
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 779.89
+# found: 59998488, total_val: 3482029539445722
+ops: 1675.01
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_cxl_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=1
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 2458.73
+# found: 165840, total_val: 10154903683052
+ops: 3543.86
+------- Node Count Summry -------
+Node4: 36690795
+Node16: 8460632
+Node48: 1886663
+Node256: 375952
+Leaf: 179403685
+
+========== Building flush_cxl_all ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DNODE4_CXL=1 -DCLFLUSH16=1 -DNODE16_CXL=1 -DCLFLUSH48=1 -DNODE48_CXL=1 -DCLFLUSH256=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_all tests ==========
+
+========= starting email_workloada_flush_cxl_all ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=1
+NODE16_CXL=1
+NODE48_CXL=1
+NODE256_CXL=1
+CLFLUSH4=1
+CLFLUSH16=1
+CLFLUSH48=1
+CLFLUSH256=1
+insert: 3503.63
+# found: 59998488, total_val: 3482029539445722
+ops: 4607.34
+------- Node Count Summry -------
+Node4: 17914313
+Node16: 4003349
+Node48: 563565
+Node256: 6
+Leaf: 65310129
+
+========= starting email_workloada_ext_10_flush_cxl_all ==========
+3
+[...] not finished
+========== Building flush_local_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node4 tests ==========
+
+========= starting randint_workloada_flush_local_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 142.89
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 136.79
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_cxl_node4 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DNODE4_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node4 tests ==========
+
+========= starting randint_workloada_flush_cxl_node4 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=1
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 159.07
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 161.04
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_local_node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH16=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node16 tests ==========
+
+========= starting randint_workloada_flush_local_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 446.12
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 453.50
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_cxl_node16 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH16=1 -DNODE16_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node16 tests ==========
+
+========= starting randint_workloada_flush_cxl_node16 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=1
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=1
+CLFLUSH48=0
+CLFLUSH256=0
+insert: 771.01
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 799.85
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_local_node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH48=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node48 tests ==========
+
+========= starting randint_workloada_flush_local_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 133.86
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 119.75
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_cxl_node48 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH48=1 -DNODE48_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node48 tests ==========
+
+========= starting randint_workloada_flush_cxl_node48 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=1
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=1
+CLFLUSH256=0
+insert: 133.85
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 119.75
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_local_node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH256=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_node256 tests ==========
+
+========= starting randint_workloada_flush_local_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 133.87
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 119.71
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_cxl_node256 ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH256=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_node256 tests ==========
+
+========= starting randint_workloada_flush_cxl_node256 ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=1
+CLFLUSH4=0
+CLFLUSH16=0
+CLFLUSH48=0
+CLFLUSH256=1
+insert: 133.79
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 119.69
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_local_all ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DCLFLUSH16=1 -DCLFLUSH48=1 -DCLFLUSH256=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_local_all tests ==========
+
+========= starting randint_workloada_flush_local_all ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=0
+NODE16_CXL=0
+NODE48_CXL=0
+NODE256_CXL=0
+CLFLUSH4=1
+CLFLUSH16=1
+CLFLUSH48=1
+CLFLUSH256=1
+insert: 458.32
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 472.51
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000
+
+========== Building flush_cxl_all ==========
+rm -rf src/libart.so src/libart.o
+gcc -g -std=c99 -D_GNU_SOURCE -O0 -DCLFLUSH4=1 -DNODE4_CXL=1 -DCLFLUSH16=1 -DNODE16_CXL=1 -DCLFLUSH48=1 -DNODE48_CXL=1 -DCLFLUSH256=1 -DNODE256_CXL=1 -lmemkind -lnuma -fPIC -o src/libart.o -c src/art.c
+gcc -shared -o src/libart.so src/libart.o
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include 
+cp src/libart.so /usr/local/lib/libart.so
+chmod 555 /usr/local/lib/libart.so
+cp src/art.h /usr/local/include/art.h
+chmod 444 /usr/local/include/art.h
+
+========== Running flush_cxl_all tests ==========
+
+========= starting randint_workloada_flush_cxl_all ==========
+3
+Loaded 120000000 keys
+Loaded 120000000 ops
+LEAF_CXL=0
+NODE4_CXL=1
+NODE16_CXL=1
+NODE48_CXL=1
+NODE256_CXL=1
+CLFLUSH4=1
+CLFLUSH16=1
+CLFLUSH48=1
+CLFLUSH256=1
+insert: 810.54
+------- Resetting node hit count total -------
+# found: 59997956, total_val: 3481122793176308
+ops: 850.30
+------- Node Count Summry -------
+Node4: 41064600
+Node16: 9336240
+Node48: 0
+Node256: 0
+Leaf: 120000000
+------- Node Hit Count Summry -------
+Node4: 101662078
+Node16: 959502171
+Node48: 0
+Node256: 0
+Leaf: 120000000

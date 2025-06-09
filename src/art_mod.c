@@ -18,18 +18,18 @@
 #define NUM_COLO_ALL_PAGE 1391624
 
 // email
-// #define NUM_4_PAGE 302600
-// #define NUM_16_PAGE 203776
-// #define NUM_48_PAGE 112896
-// #define NUM_256_PAGE 10
-// #define NUM_LEAF_PAGE 772096
+#define NUM_4_PAGE 302600
+#define NUM_16_PAGE 203776
+#define NUM_48_PAGE 112896
+#define NUM_256_PAGE 10
+#define NUM_LEAF_PAGE 772096
 
 // email a_ext_10
-#define NUM_4_PAGE 635460
-#define NUM_16_PAGE 448308
-#define NUM_48_PAGE 383847
-#define NUM_256_PAGE 626600
-#define NUM_LEAF_PAGE 7720960
+// #define NUM_4_PAGE 635460
+// #define NUM_16_PAGE 448308
+// #define NUM_48_PAGE 383847
+// #define NUM_256_PAGE 626600
+// #define NUM_LEAF_PAGE 7720960
 
 // randint
 // #define NUM_LEAF_PAGE 2930000
@@ -93,7 +93,12 @@ static void clflush_range(void *addr, size_t size)
 }
 #endif
 static const int type_map[] = {0, 4, 16, 48, 256}; // index 0 unused
-
+/**
+ * Macros to manipulate pointer tags
+ */
+#define IS_LEAF(x) (((uintptr_t)x & 1))
+#define SET_LEAF(x) ((void *)((uintptr_t)x | 1))
+#define LEAF_RAW(x) ((art_leaf *)((void *)((uintptr_t)x & ~1)))
 /**
  * Allocates a node of the given type,
  * initializes to zero and sets the type.
@@ -154,62 +159,6 @@ static art_node *alloc_node(uint8_t type)
     n->type = type;
     return n;
 }
-#if DEPTH_INDI
-static void increment_subtree_depth(art_node *n)
-{
-    if (!n)
-        return;
-
-    if (IS_LEAF(n))
-    {
-        return;
-    }
-
-    n->depth += 1;
-    // printf("%p\n", n);
-
-    switch (n->type)
-    {
-    case NODE4:
-    {
-        art_node4 *node = (art_node4 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-            increment_subtree_depth(node->children[i]);
-        break;
-    }
-    case NODE16:
-    {
-        art_node16 *node = (art_node16 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-            increment_subtree_depth(node->children[i]);
-        break;
-    }
-    case NODE48:
-    {
-        art_node48 *node = (art_node48 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->keys[i])
-            {
-                int idx = node->keys[i] - 1;
-                increment_subtree_depth(node->children[idx]);
-            }
-        }
-        break;
-    }
-    case NODE256:
-    {
-        art_node256 *node = (art_node256 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->children[i])
-                increment_subtree_depth(node->children[i]);
-        }
-        break;
-    }
-    }
-}
-#endif
 
 /**
  * Initializes an ART tree
@@ -751,7 +700,7 @@ art_leaf *art_maximum(art_tree *t)
     return maximum((art_node *)t->root);
 }
 
-static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value, int depth)
+static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value)
 {
     art_leaf *l = NULL;
 // l = ALIGN_UP(bump_ptr, LEAF_ALIGN); // bulk alloc version
@@ -775,13 +724,9 @@ static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value, i
     // printf("0x%lx, size: %lu\n", (unsigned long)(uintptr_t)l, sizeof(art_leaf) + key_len);
     l->value = value;
     l->key_len = key_len;
-
     memcpy(l->key, key, key_len);
 #if CNT
     leaf_cnt++;
-#endif
-#if DEPTH_INDI
-    l->depth = (uint32_t)depth;
 #endif
     return l;
 }
@@ -802,9 +747,7 @@ static void copy_header(art_node *dest, art_node *src)
 {
     dest->num_children = src->num_children;
     dest->partial_len = src->partial_len;
-#if DEPTH_INDI
     dest->depth = src->depth;
-#endif
     memcpy(dest->partial, src->partial, min(MAX_PREFIX_LEN, src->partial_len));
 }
 
@@ -836,11 +779,21 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
             child_node->self_ref = &n->children[pos];
         }
 #endif
+#if DEPTH_INDI
+        if (!IS_LEAF(child))
+        {
+            if (((art_node *)child)->depth != n->n.depth + 1)
+            {
+                fprintf(stderr, "child depth mismatch: existing %d, expected %d\n",
+                        ((art_node *)child)->depth, n->n.depth + 1);
+            }
+        }
+#endif
     }
     else
     {
         art_node256 *new_node = (art_node256 *)alloc_node(NODE256);
-        copy_header((art_node *)new_node, (art_node *)n);
+
         for (int i = 0; i < 256; i++)
         {
             if (n->keys[i])
@@ -851,13 +804,12 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
                 if (!IS_LEAF(existing_child))
                     existing_child->self_ref = &new_node->children[i];
 #endif
-#if DEPTH_INDI
-                if (!IS_LEAF(existing_child) && ((art_node *)existing_child)->depth != new_node->n.depth + 1)
-                    fprintf(stderr, "DEPTH MISMATCH: parent depth = %u, child depth = %u (expected %u)\n",
-                            new_node->n.depth, ((art_node *)existing_child)->depth, new_node->n.depth + 1);
-#endif
             }
         }
+        copy_header((art_node *)new_node, (art_node *)n);
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         *ref = (art_node *)new_node;
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
@@ -934,7 +886,11 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
                 ((art_node *)n->children[i])->self_ref = &new_node->children[i];
 #endif
         }
+
         copy_header((art_node *)new_node, (art_node *)n);
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         *ref = (art_node *)new_node;
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
@@ -973,7 +929,6 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
         // Insert element
         n->keys[idx] = c;
         n->children[idx] = child_node;
-
 #if SELF_REF
         if (!IS_LEAF(child_node))
             ((art_node *)child_node)->self_ref = &n->children[idx];
@@ -1001,6 +956,9 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
 #endif
 
         copy_header((art_node *)new_node, (art_node *)n);
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         *ref = (art_node *)new_node;
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
@@ -1024,13 +982,9 @@ static void add_child(art_node *n, art_node **ref, unsigned char c, void *child)
     case NODE4:
         return add_child4((art_node4 *)n, ref, c, child);
     case NODE16:
-        add_child16((art_node16 *)n, ref, c, child);
-        // printf("%d\n", n->depth);
-        return;
+        return add_child16((art_node16 *)n, ref, c, child);
     case NODE48:
-        add_child48((art_node48 *)n, ref, c, child);
-        // printf("%p %d\n", n, n->depth);
-        return;
+        return add_child48((art_node48 *)n, ref, c, child);
     case NODE256:
         return add_child256((art_node256 *)n, ref, c, child);
     default:
@@ -1066,12 +1020,16 @@ static int prefix_mismatch(const art_node *n, const unsigned char *key, int key_
     return idx;
 }
 
-static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *key, int key_len, void *value, int depth, int *old, int replace, int logical_depth)
+static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *key, int key_len, void *value, int depth, int *old, int replace)
 {
     // If we are at a NULL node, inject a leaf
     if (!n)
     {
-        art_leaf *l = make_leaf(key, key_len, value, logical_depth); // not affecting
+        // *ref = (art_node *)SET_LEAF(make_leaf(key, key_len, value));
+        art_leaf *l = make_leaf(key, key_len, value);
+#if DEPTH_INDI
+        ((art_node *)l)->depth = depth;
+#endif
         *ref = (art_node *)SET_LEAF(l);
         return NULL;
     }
@@ -1086,9 +1044,13 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         if (start_acc_streaming)
             fprintf(acc_fd, "%lu,0\n", (unsigned long)n);
 #endif
+        // printf("n = %p\n", n);
         art_leaf *l = LEAF_RAW(n);
+        // printf("l = %p\n", l);
+        // printf("  l->key_len = %u\n", l->key_len); // may crash here
+        // Check if we are updating an existing value
         if (!leaf_matches(l, key, key_len, depth))
-        { // exact same match, update value
+        {
             *old = 1;
             void *old_val = l->value;
             if (replace)
@@ -1096,29 +1058,30 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
             return old_val;
         }
 
-        /* Split the leaf into a new NODE4                            */
+        // New value, we must split the leaf into a node4
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
 #if DEPTH_INDI
-        new_node->n.depth = logical_depth;
-        // printf("aaaaa %s: %d\n", key, logical_depth + 1);
-        l->depth = logical_depth + 1;
+        new_node->n.depth = depth;
 #endif
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
 #endif
-        /* new leaf */
-        art_leaf *l2 = make_leaf(key, key_len, value, logical_depth + 1);
 
-        /* longest common prefix of the two leaves */
-        int lcp = longest_common_prefix(l, l2, depth);
-        new_node->n.partial_len = lcp;
-        memcpy(new_node->n.partial,
-               key + depth,
-               min(MAX_PREFIX_LEN, lcp));
+        // Create a new leaf
+        art_leaf *l2 = make_leaf(key, key_len, value);
 
+        // Determine longest prefix
+        int longest_prefix = longest_common_prefix(l, l2, depth);
+        new_node->n.partial_len = longest_prefix;
+        memcpy(new_node->n.partial, key + depth, min(MAX_PREFIX_LEN, longest_prefix));
+        // Add the leafs to the new node4
         *ref = (art_node *)new_node;
-        add_child4(new_node, ref, l->key[depth + lcp], SET_LEAF(l));
-        add_child4(new_node, ref, l2->key[depth + lcp], SET_LEAF(l2));
+#if DEPTH_INDI
+        // ((art_node *)l)->depth = depth + 1; // problem
+        // ((art_node *)l2)->depth = depth + 1;
+#endif
+        add_child4(new_node, ref, l->key[depth + longest_prefix], SET_LEAF(l));
+        add_child4(new_node, ref, l2->key[depth + longest_prefix], SET_LEAF(l2));
         return NULL;
     }
 #if HIT_CNT_TOTAL
@@ -1170,6 +1133,7 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
     if (start_acc_streaming)
         fprintf(acc_fd, "%lu,%d\n", (unsigned long)n, type_map[n->type]);
 #endif
+
     // Check if given node has a prefix
     if (n->partial_len)
     {
@@ -1183,16 +1147,15 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // Create a new node
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
-#if DEPTH_INDI
-        new_node->n.depth = logical_depth;
-        n->depth = logical_depth + 1;
-#endif
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
 #endif
+#if DEPTH_INDI
+        new_node->n.depth = depth;
+#endif
+        *ref = (art_node *)new_node;
         new_node->n.partial_len = prefix_diff;
         memcpy(new_node->n.partial, n->partial, min(MAX_PREFIX_LEN, prefix_diff));
-        *ref = (art_node *)new_node;
 
         // Adjust the prefix of the old node
         if (n->partial_len <= MAX_PREFIX_LEN)
@@ -1210,33 +1173,33 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
             memcpy(n->partial, l->key + depth + prefix_diff + 1,
                    min(MAX_PREFIX_LEN, n->partial_len));
         }
-        // printf("bbbbb %s: %d\n", key, logical_depth + 1);
+
         // Insert the new leaf
-        art_leaf *l = make_leaf(key, key_len, value, logical_depth + 1);
-        add_child4(new_node, ref, key[depth + prefix_diff], SET_LEAF(l)); // here new_node (node4) will be parent of n (eg., node48)
+        art_leaf *l = make_leaf(key, key_len, value);
 #if DEPTH_INDI
-        // if (n->type == NODE48 || n->type == NODE16 || n->type == NODE4)
-        {
-            // printf("new_node: %p, n: %p\n", new_node, n);
-            // do recursive bump update
-            n->depth--; // since we're incrementing inside
-            increment_subtree_depth(n);
-        }
+        // ((art_node *)l)->depth = depth + 1; // <-- insert new leaf
 #endif
+        add_child4(new_node, ref, key[depth + prefix_diff], SET_LEAF(l));
         return NULL;
     }
 
 RECURSE_SEARCH:;
+
+    // Find a child to recurse to
     art_node **child = find_child(n, key[depth]);
     if (child)
     {
-        // printf("ccccc %s: %d\n", key, logical_depth + 1);
-        return recursive_insert(*child, child, key, key_len, value, depth + 1, old, replace, logical_depth + 1);
+        return recursive_insert(*child, child, key, key_len, value, depth + 1, old, replace);
     }
+
     // No child, node goes within us
-    // printf("ddddd %s: %d\n", key, logical_depth);
-    art_leaf *l = make_leaf(key, key_len, value, logical_depth);
+    art_leaf *l = make_leaf(key, key_len, value);
+// art_node *leaf_node = (art_node *)SET_LEAF(l);
+#if DEPTH_INDI
+    // ((art_node *)l)->depth = depth + 1; // causes problem
+#endif
     add_child(n, ref, key[depth], SET_LEAF(l));
+    // add_child(n, ref, key[depth], (void *)leaf_node);
     return NULL;
 }
 
@@ -1252,7 +1215,7 @@ RECURSE_SEARCH:;
 void *art_insert(art_tree *t, const unsigned char *key, int key_len, void *value)
 {
     int old_val = 0;
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 1, 0);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 1);
     if (!old_val)
         t->size++;
     return old;
@@ -1270,7 +1233,7 @@ void *art_insert(art_tree *t, const unsigned char *key, int key_len, void *value
 void *art_insert_no_replace(art_tree *t, const unsigned char *key, int key_len, void *value)
 {
     int old_val = 0;
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 0, 0);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 0);
     if (!old_val)
         t->size++;
     return old;
@@ -1286,6 +1249,9 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
     {
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
         *ref = (art_node *)new_node;
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         copy_header((art_node *)new_node, (art_node *)n);
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
@@ -1324,6 +1290,9 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
     {
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
         *ref = (art_node *)new_node;
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         copy_header((art_node *)new_node, (art_node *)n);
 #if SELF_REF
         ((art_node *)new_node)->self_ref = ref;
@@ -1370,6 +1339,9 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
     if (n->n.num_children == 3)
     {
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+        // #if DEPTH_INDI
+        //         new_node->n.depth = n->n.depth;
+        // #endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n);
 #if SELF_REF
@@ -1427,10 +1399,10 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
             memcpy(child->partial, n->n.partial, min(prefix, MAX_PREFIX_LEN));
             child->partial_len += n->n.partial_len + 1;
         }
-        *ref = child;
 #if DEPTH_INDI
         child->depth = n->n.depth;
 #endif
+        *ref = child;
 #if SELF_REF
         if (!IS_LEAF(child))
             child->self_ref = ref;
@@ -1504,31 +1476,31 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref, const unsigned ch
         break;
     }
 #endif
-// #if CLFLUSH4 || CLFLUSH16 || CLFLUSH48 || CLFLUSH256
-//     switch (n->type)
-//     {
-// #if CLFLUSH4
-//     case NODE4:
-//         clflush_range((void *)n, sizeof(art_node4));
-//         break;
-// #endif
-// #if CLFLUSH16
-//     case NODE16:
-//         clflush_range((void *)n, sizeof(art_node16));
-//         break;
-// #endif
-// #if CLFLUSH48
-//     case NODE48:
-//         clflush_range((void *)n, sizeof(art_node48));
-//         break;
-// #endif
-// #if CLFLUSH256
-//     case NODE256:
-//         clflush_range((void *)n, sizeof(art_node256));
-//         break;
-// #endif
-//     }
-// #endif
+#if CLFLUSH4 || CLFLUSH16 || CLFLUSH48 || CLFLUSH256
+    switch (n->type)
+    {
+#if CLFLUSH4
+    case NODE4:
+        clflush_range((void *)n, sizeof(art_node4));
+        break;
+#endif
+#if CLFLUSH16
+    case NODE16:
+        clflush_range((void *)n, sizeof(art_node16));
+        break;
+#endif
+#if CLFLUSH48
+    case NODE48:
+        clflush_range((void *)n, sizeof(art_node48));
+        break;
+#endif
+#if CLFLUSH256
+    case NODE256:
+        clflush_range((void *)n, sizeof(art_node256));
+        break;
+#endif
+    }
+#endif
 #if HIT_DIST
     n->hit_cnt++;
 #endif
@@ -1987,21 +1959,18 @@ void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats, FILE
     if (!n)
         return;
     if (IS_LEAF(n))
-    {
-        //         fprintf(fd, "leaf: %d", depth);
-        //         art_leaf *leaf = LEAF_RAW(n);
-        // #if DEPTH_INDI
-        //         fprintf(fd, " %d", leaf->depth);
-        // #endif
-        //         fprintf(fd, " %s", leaf->key);
-        //         fprintf(fd, " \n");
         return;
-    }
+    // #if DEPTH_INDI
+    //     if (depth != n->depth)
+    //     {
+    //         fprintf(stderr, "DEPTH MISMATCH at node type %d: param = %d, field = %d\n", n->type, depth, n->depth);
+    //     }
+    // #endif
     switch (n->type)
     {
     case NODE4:
     {
-        fprintf(fd, "4: %p %d", n, depth);
+        fprintf(fd, "4: %d", depth);
 #if DEPTH_INDI
         fprintf(fd, " %d", n->depth);
 #endif
@@ -2018,7 +1987,7 @@ void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats, FILE
 
     case NODE16:
     {
-        fprintf(fd, "16: %p %d", n, depth);
+        fprintf(fd, "16: %d", depth);
 #if DEPTH_INDI
         fprintf(fd, " %d", n->depth);
 #endif
@@ -2035,7 +2004,7 @@ void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats, FILE
 
     case NODE48:
     {
-        fprintf(fd, "48: %p %d", n, depth);
+        fprintf(fd, "48: %d", depth);
 #if DEPTH_INDI
         fprintf(fd, " %d", n->depth);
 #endif
@@ -2051,14 +2020,12 @@ void collect_node_depths(art_node *n, int depth, node_depth_stats_t *stats, FILE
                 collect_node_depths(node->children[idx - 1], depth + 1, stats, fd);
             }
         }
-        // increment_subtree_depth(n);
-        // printf("\n");
         break;
     }
 
     case NODE256:
     {
-        fprintf(fd, "256: %p %d", n, depth);
+        fprintf(fd, "256: %d", depth);
 #if DEPTH_INDI
         fprintf(fd, " %d", n->depth);
 #endif
@@ -2749,92 +2716,6 @@ void dfs_print_hit_cnt_path(art_node *node, int depth, int *path, void **node_pa
         break;
     }
     default:
-        break;
-    }
-}
-#endif
-
-#if VIS
-static void print_indent(FILE *out, int indent)
-{
-    for (int i = 0; i < indent; i++)
-    {
-        fprintf(out, "  ");
-    }
-}
-
-void print_art_tree(FILE *out, art_node *n, int indent)
-{
-    if (!n)
-        return;
-
-    if (IS_LEAF(n))
-    {
-        art_leaf *l = LEAF_RAW(n);
-        print_indent(out, indent);
-        fprintf(out, "leaf: \"%s\" (depth=%u)\n", l->key, l->depth);
-        return;
-    }
-
-    print_indent(out, indent);
-    fprintf(out, "node: type=%d, children=%d, depth=%u\n", n->type, n->num_children, n->depth);
-
-    switch (n->type)
-    {
-    case NODE4:
-    {
-        art_node4 *node = (art_node4 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-        {
-            print_indent(out, indent + 1);
-            fprintf(out, "'%c' -> ", node->keys[i]);
-            print_art_tree(out, node->children[i], indent + 2);
-        }
-        break;
-    }
-    case NODE16:
-    {
-        art_node16 *node = (art_node16 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-        {
-            print_indent(out, indent + 1);
-            fprintf(out, "'%c' -> ", node->keys[i]);
-            print_art_tree(out, node->children[i], indent + 2);
-        }
-        break;
-    }
-    case NODE48:
-    {
-        art_node48 *node = (art_node48 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->keys[i])
-            {
-                int idx = node->keys[i] - 1;
-                print_indent(out, indent + 1);
-                fprintf(out, "'%c' -> ", i);
-                print_art_tree(out, node->children[idx], indent + 2);
-            }
-        }
-        break;
-    }
-    case NODE256:
-    {
-        art_node256 *node = (art_node256 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->children[i])
-            {
-                print_indent(out, indent + 1);
-                fprintf(out, "'%c' -> ", i);
-                print_art_tree(out, node->children[i], indent + 2);
-            }
-        }
-        break;
-    }
-    default:
-        print_indent(out, indent);
-        fprintf(out, "Unknown node type %d\n", n->type);
         break;
     }
 }
