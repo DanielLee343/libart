@@ -65,10 +65,9 @@ extern "C"
 #ifndef CLFLUSH256
 #define CLFLUSH256 0
 #endif
-#define CNT 0                 // bookkeeping # count for diff node types
+#define CNT 1                 // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0       // bookkeeping # hit for diff node types
-#define DEPTH 0               // information of node depth distribution
-#define DEPTH_INDI 0          // bookkeeping avg depth for individual node
+#define DEPTH_INDI 1          // bookkeeping avg depth for individual node
 #define HIT_DIST 0            // for # hit distribution for diff node types
 #define LEVEL_ORDER 0         // perform level traversal to collect node type composition
 #define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
@@ -76,6 +75,7 @@ extern "C"
 #define STREAM_ACC_ADDR 0     // stream accessed address for each node, should only be enabled for debugging
 #define ONLINE 0              // online swapping
 #define SELF_REF 0            // adding self_ref
+#define DUMP_SELF_REF 0       // dump self_ref to file
 #define DFS 0                 // do dfs to dump node and path hotness
 #define VIS 0                 // visualize tree
 
@@ -99,7 +99,7 @@ extern "C"
 #if DEPTH_INDI
         uint32_t depth;
 #endif
-#if SELF_REF
+#if SELF_REF || DUMP_SELF_REF
         art_node **self_ref;
 #endif
 #if ONLINE
@@ -156,9 +156,12 @@ extern "C"
     {
         void *value;
         uint32_t key_len;
-#if DEPTH_INDI
-        uint32_t depth;
-#endif
+        // #if DEPTH_INDI
+        //         uint32_t depth;
+        // #endif
+        // #if SELF_REF || DUMP_SELF_REF
+        //         art_node **self_ref;
+        // #endif
         unsigned char key[];
     } art_leaf;
 
@@ -306,7 +309,7 @@ inline uint64_t art_size(art_tree *t)
     void node_hit_cnt_total();
 #endif
 
-#if DEPTH
+#if DEPTH_INDI
     // #define NODE_DEPTH(n) (((art_node *)(n))->depth)
     typedef struct
     {
@@ -347,12 +350,12 @@ inline uint64_t art_size(art_tree *t)
     void init_region(void **base, size_t size, int use_cxl, struct memkind **kind);
     void destroy_region(void *base, size_t size, struct memkind *kind);
 
-    void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
+    // void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
     void *node4_base = NULL;
     void *node16_base = NULL;
     void *node48_base = NULL;
     void *node256_base = NULL;
-    struct memkind *leaf_kind = NULL; // memkind ptr
+    // struct memkind *leaf_kind = NULL; // memkind ptr
     struct memkind *node4_kind = NULL;
     struct memkind *node16_kind = NULL;
     struct memkind *node48_kind = NULL;
@@ -364,10 +367,10 @@ inline uint64_t art_size(art_tree *t)
     void distribute_nodes(art_node *n, art_node **ref, int curr_depth);
     void print_node_move_stat();
     // leaf
-    void *leaf_local = NULL;                // for local mmaped ptr
-    void *leaf_cxl = NULL;                  // for cxl mmaped ptr
-    struct memkind *leaf_local_kind = NULL; // for local memkind ptr
-    struct memkind *leaf_cxl_kind = NULL;   // for cxl memkind ptr
+    // void *leaf_local = NULL;                // for local mmaped ptr
+    // void *leaf_cxl = NULL;                  // for cxl mmaped ptr
+    // struct memkind *leaf_local_kind = NULL; // for local memkind ptr
+    // struct memkind *leaf_cxl_kind = NULL;   // for cxl memkind ptr
     // all nodes new location
     void *all_type_local = NULL;
     void *all_type_cxl = NULL;
@@ -394,8 +397,8 @@ inline uint64_t art_size(art_tree *t)
     struct memkind *node256_local_kind = NULL;
     struct memkind *node256_cxl_kind = NULL;
     // counting move
-    int leaf_moved_local = 0;
-    int leaf_moved_cxl = 0;
+    // int leaf_moved_local = 0;
+    // int leaf_moved_cxl = 0;
     int node4_moved_local = 0;
     int node4_moved_cxl = 0;
     int node16_moved_local = 0;
@@ -412,7 +415,7 @@ inline uint64_t art_size(art_tree *t)
     int start_acc_streaming = 0;
 #endif
 #if ONLINE
-    bool leaf_local_full = 0;
+    // bool leaf_local_full = 0;
     bool node4_local_full = 0;
     bool node16_local_full = 0;
     bool node48_local_full = 0;
@@ -444,6 +447,10 @@ inline uint64_t art_size(art_tree *t)
 #endif
 #if VIS
     void print_art_tree(FILE *out, art_node *n, int indent);
+#endif
+#if DUMP_SELF_REF
+    void dump_self_ref(FILE *out, art_node *n, int indent);
+    void dump_self_ref_json(FILE *out, art_node *n);
 #endif
 #ifdef __cplusplus
 }

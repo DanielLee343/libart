@@ -536,9 +536,9 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
         add_child48(new_node, ref, c, child);
     }
 }
-
 static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *child)
 {
+    art_node *child_node = (art_node *)child;
     if (n->n.num_children < 4)
     {
         int idx;
@@ -555,21 +555,59 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
 
         // Insert element
         n->keys[idx] = c;
-        n->children[idx] = (art_node *)child;
+        n->children[idx] = child_node;
+
+#if SELF_REF
+        // printf("INSERT at idx=%d key=%c (%d) ptr=%p\n", idx, c, c, child_node);
+        // printf("n->children[%d] = %p\n", idx, n->children[idx]);
+        if (!IS_LEAF(child))
+        {
+            ((art_node *)child)->self_ref = &n->children[idx];
+            printf("33333 %p\n", ((art_node *)child_node)->self_ref);
+        }
+        else
+        {
+            LEAF_RAW(child)->self_ref = &n->children[idx];
+            art_leaf *l = LEAF_RAW(child);
+            printf("44444 %p key: %s\n", LEAF_RAW(child_node)->self_ref, l->key);
+        }
+#endif
         n->n.num_children++;
     }
     else
     {
+        printf("hit\n");
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+        new_node->n.num_children = n->n.num_children; // todo: check if needed
 
         // Copy the child pointers and the key map
         memcpy(new_node->children, n->children,
                sizeof(void *) * n->n.num_children);
         memcpy(new_node->keys, n->keys,
                sizeof(unsigned char) * n->n.num_children);
+#if SELF_REF
+        // for (int i = 0; i < new_node->n.num_children; i++)
+        // {
+        //     if (new_node->children[i] && !IS_LEAF(new_node->children[i]))
+        //     {
+        //         ((art_node *)new_node->children[i])->self_ref = &new_node->children[i];
+        //     }
+        // }
+#endif
+
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
-        free(n);
+#if SELF_REF
+        // ((art_node *)new_node)->self_ref = ref;
+#endif
+        struct memkind *kind = memkind_detect_kind((void *)n);
+        memkind_free(kind, n);
+#if CNT
+        node4_cnt--;
+#endif
+#if ONLINE
+        update_hot_cold_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
+#endif
         add_child16(new_node, ref, c, child);
     }
 }
@@ -1228,8 +1266,6 @@ void print_avg_node_depths(const node_depth_stats_t *s)
         printf("Node256 total: %zu, avg depth:  %.2f\n", s->node256_count, (double)s->node256_depth_total / s->node256_count);
 }
 #endif
-
-#if VIS
 static void print_indent(FILE *out, int indent)
 {
     for (int i = 0; i < indent; i++)
@@ -1237,7 +1273,7 @@ static void print_indent(FILE *out, int indent)
         fprintf(out, "  ");
     }
 }
-
+#if VIS
 void print_art_tree(FILE *out, art_node *n, int indent)
 {
     if (!n)
@@ -1303,6 +1339,83 @@ void print_art_tree(FILE *out, art_node *n, int indent)
                 print_indent(out, indent + 1);
                 fprintf(out, "'%c' -> ", i);
                 print_art_tree(out, node->children[i], indent + 2);
+            }
+        }
+        break;
+    }
+    default:
+        print_indent(out, indent);
+        fprintf(out, "Unknown node type %d\n", n->type);
+        break;
+    }
+}
+#endif
+#if DUMP_SELF_REF
+void dump_self_ref(FILE *out, art_node *n, int indent)
+{
+    if (!n)
+        return;
+
+    if (IS_LEAF(n))
+    {
+        art_leaf *l = LEAF_RAW(n);
+        print_indent(out, indent);
+        fprintf(out, "leaf: \"%s\" parent=%p\n", l->key, l->self_ref);
+        return;
+    }
+    print_indent(out, indent);
+    fprintf(out, "type=%d, addr=%p, children=%d, parent=%p\n", n->type, n, n->num_children, n->self_ref);
+    // fprintf(out, "%d %p %p\n", n->type, n, n->self_ref);
+
+    switch (n->type)
+    {
+    case NODE4:
+    {
+        art_node4 *node = (art_node4 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+        {
+            print_indent(out, indent + 1);
+            fprintf(out, "'%c' -> ", node->keys[i]);
+            dump_self_ref(out, node->children[i], indent + 2);
+        }
+        break;
+    }
+    case NODE16:
+    {
+        art_node16 *node = (art_node16 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+        {
+            print_indent(out, indent + 1);
+            fprintf(out, "'%c' -> ", node->keys[i]);
+            dump_self_ref(out, node->children[i], indent + 2);
+        }
+        break;
+    }
+    case NODE48:
+    {
+        art_node48 *node = (art_node48 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->keys[i])
+            {
+                int idx = node->keys[i] - 1;
+                print_indent(out, indent + 1);
+                fprintf(out, "'%c' -> ", i);
+                dump_self_ref(out, node->children[idx], indent + 2);
+            }
+        }
+        break;
+    }
+    case NODE256:
+    {
+        art_node256 *node = (art_node256 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->children[i])
+            {
+                print_indent(out, indent + 1);
+                fprintf(out, "'%c' -> ", i);
+                dump_self_ref(out, node->children[i], indent + 2);
             }
         }
         break;
