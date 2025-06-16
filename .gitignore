@@ -6,3 +6,4 @@ src/libart.so
 tests/*
 !tests/value.c
 !tests/Makefile
+!tests/test_fp.sh
