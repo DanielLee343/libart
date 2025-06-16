@@ -12,7 +12,7 @@
 #define MAX_KEYS 120000000
 #define MAX_OPS 120000000
 #define AVG_KEY_LEN 20
-#define MAX_LINE_LEN 33
+#define MAX_LINE_LEN 40
 #define LOCAL_MASK 0
 #define VAL_LOC_MASK 0
 #define MAX_DEPTH 35

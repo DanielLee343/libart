@@ -78,7 +78,7 @@ extern "C"
 #define DUMP_SELF_REF 0       // dump self_ref to file
 #define DFS 0                 // do dfs to dump node and path hotness
 #define VIS 0                 // visualize tree
-#define FIRST_TOUCH 0         // measuring NUMA first touch
+#define FIRST_TOUCH 1         // measuring NUMA first touch
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 

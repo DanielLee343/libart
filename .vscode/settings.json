@@ -27,6 +27,7 @@
         "optional": "c",
         "system_error": "c",
         "string.h": "c",
-        "assert.h": "c"
+        "assert.h": "c",
+        "stdio.h": "c"
     }
 }

@@ -3,7 +3,7 @@ wl="email_workloada"
 FP_FILE=total_fp.txt
 NUMA_FP_FILE=numa_fp.txt
 
-source /home/lyuze/workspace/ClickHouse/tpch/tools.sh
+# source /home/lyuze/workspace/ClickHouse/tpch/tools.sh
 output_dir="perf_out/fp"
 [[ ! -d ${output_dir} ]] && mkdir -p ${output_dir}
 rm -rf $FP_FILE
