@@ -78,6 +78,7 @@ extern "C"
 #define DUMP_SELF_REF 0       // dump self_ref to file
 #define DFS 0                 // do dfs to dump node and path hotness
 #define VIS 0                 // visualize tree
+#define FIRST_TOUCH 0         // measuring NUMA first touch
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
@@ -350,12 +351,12 @@ inline uint64_t art_size(art_tree *t)
     void init_region(void **base, size_t size, int use_cxl, struct memkind **kind);
     void destroy_region(void *base, size_t size, struct memkind *kind);
 
-    // void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
+    void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
     void *node4_base = NULL;
     void *node16_base = NULL;
     void *node48_base = NULL;
     void *node256_base = NULL;
-    // struct memkind *leaf_kind = NULL; // memkind ptr
+    struct memkind *leaf_kind = NULL; // memkind ptr
     struct memkind *node4_kind = NULL;
     struct memkind *node16_kind = NULL;
     struct memkind *node48_kind = NULL;

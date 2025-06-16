@@ -29,7 +29,7 @@
 #define NUM_16_PAGE 187757
 #define NUM_48_PAGE 105770
 #define NUM_256_PAGE 6
-// #define NUM_LEAF_PAGE 772096
+#define NUM_LEAF_PAGE 772096
 
 // email a_ext_10
 // #define NUM_4_PAGE 635460
@@ -227,7 +227,6 @@ static void increment_subtree_depth(art_node *n)
  */
 int art_tree_init(art_tree *t)
 {
-    SHOW_DEFINE(LEAF_CXL);
     SHOW_DEFINE(NODE4_CXL);
     SHOW_DEFINE(NODE16_CXL);
     SHOW_DEFINE(NODE48_CXL);
@@ -251,14 +250,12 @@ int art_tree_init(art_tree *t)
     }
     t->root = NULL;
     t->size = 0;
-    // init_region(&leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, LEAF_CXL, &leaf_kind);
+    init_region(&leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, LEAF_CXL, &leaf_kind);
     init_region(&node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, NODE4_CXL, &node4_kind);
     init_region(&node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, NODE16_CXL, &node16_kind);
     init_region(&node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, NODE48_CXL, &node48_kind);
     init_region(&node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, NODE256_CXL, &node256_kind);
 #if OFFLINE_REORDER
-    // init_region(&leaf_local, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, 0, &leaf_local_kind);
-    // init_region(&leaf_cxl, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, 1, &leaf_cxl_kind);
     init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE, 0, &node4_local_kind);
     init_region(&node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE, 1, &node4_cxl_kind);
     init_region(&node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE, 0, &node16_local_kind);
@@ -271,8 +268,6 @@ int art_tree_init(art_tree *t)
     init_region(&all_type_local, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, 0, &all_type_local_kind);
     init_region(&all_type_cxl, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, 0, &all_type_cxl_kind);
 #elif ONLINE
-    // init_region(&leaf_local, (size_t)PAGE_SIZE * NUM_LEAF_PAGE / 2, 0, &leaf_local_kind);
-    // init_region(&leaf_cxl, (size_t)PAGE_SIZE * NUM_LEAF_PAGE / 2, 1, &leaf_cxl_kind);
     init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, 0, &node4_local_kind);
     init_region(&node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, 1, &node4_cxl_kind);
     init_region(&node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, 0, &node16_local_kind);
@@ -403,14 +398,12 @@ int art_tree_destroy(art_tree *t)
 {
     destroy_node(t->root);
     // numa_free(slab_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE); // for prev bulk free
-    // destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind);
+    destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind);
     destroy_region(node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_kind);
     destroy_region(node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_kind);
     destroy_region(node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, node48_kind);
     destroy_region(node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_kind);
 #if OFFLINE_REORDER
-    // destroy_region(leaf_local, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_local_kind);
-    // destroy_region(leaf_cxl, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_cxl_kind);
     destroy_region(node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_local_kind);
     destroy_region(node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_cxl_kind);
     destroy_region(node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_local_kind);
@@ -424,8 +417,6 @@ int art_tree_destroy(art_tree *t)
     destroy_region(all_type_cxl, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, all_type_cxl_kind);
 
 #elif ONLINE
-    // destroy_region(leaf_local, (size_t)PAGE_SIZE * NUM_LEAF_PAGE / 2, leaf_local_kind);
-    // destroy_region(leaf_cxl, (size_t)PAGE_SIZE * NUM_LEAF_PAGE / 2, leaf_cxl_kind);
     destroy_region(node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, node4_local_kind);
     destroy_region(node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, node4_cxl_kind);
     destroy_region(node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, node16_local_kind);
@@ -798,11 +789,11 @@ art_leaf *art_maximum(art_tree *t)
 
 static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value, int depth)
 {
-    // art_leaf *l = NULL;
+    art_leaf *l = NULL;
     // l = ALIGN_UP(bump_ptr, LEAF_ALIGN); // bulk alloc version
     // bump_ptr = (void *)((uintptr_t)l + sizeof(art_leaf) + key_len);
     // l = (art_leaf *)calloc(1, sizeof(art_leaf) + key_len); // vanilla
-    art_leaf *l = (art_leaf *)calloc(1, sizeof(art_leaf) + key_len); // normal calloc for art_leaf
+    l = (art_leaf *)memkind_calloc(leaf_kind, 1, sizeof(art_leaf) + key_len);
     l->value = value;
     l->key_len = key_len;
 
@@ -1880,6 +1871,8 @@ void init_region(void **base, size_t size, int use_cxl, struct memkind **kind)
     *base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     assert(*base != MAP_FAILED);
 
+#if FIRST_TOUCH
+#else
     unsigned long node_mask = 1UL << (use_cxl ? CXL_MASK : LOCAL_MASK);
     long mbind_ret = mbind(*base, size, MPOL_BIND, &node_mask, sizeof(node_mask) * 8, 0);
     if (mbind_ret != 0)
@@ -1887,6 +1880,7 @@ void init_region(void **base, size_t size, int use_cxl, struct memkind **kind)
         perror("mbind");
         abort();
     }
+#endif
     // printf("Creating fixed kind at %p, size = %zu\n", *base, size);
     // assert(*base != MAP_FAILED);
     // assert(size % sysconf(_SC_PAGESIZE) == 0);

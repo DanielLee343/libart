@@ -36,9 +36,9 @@ typedef struct
 
 int pre_load_data(char *keys, int *key_lens, FILE *f);
 int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f);
-void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys, uint64_t *val_arr_keys);
-void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops, uint64_t *val_arr_ops);
-void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops, uint64_t *val_arr_ops);
+void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys);
+void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops);
+void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops);
 int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value);
 
 static double elapsed_ms(struct timespec start, struct timespec end)
@@ -103,8 +103,6 @@ int main(int argc, char *argv[])
     }
 
     int num_keys = pre_load_data(keys, key_lens, f_input);
-    uint64_t *val_arr_keys = numa_alloc_onnode(sizeof(uint64_t) * num_keys, VAL_LOC_MASK);
-
     fclose(f_input);
 
     printf("Loaded %d keys\n", num_keys);
@@ -117,7 +115,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     char *ops = (char *)numa_alloc_onnode((size_t)MAX_OPS * AVG_KEY_LEN, LOCAL_MASK);
-    // memset(ops, 0, (size_t)MAX_OPS * AVG_KEY_LEN);
     if (!ops)
     {
         perror("numa_alloc_onnode ops failed");
@@ -134,8 +131,6 @@ int main(int argc, char *argv[])
     }
 
     int num_ops = preload_ops(ops, ops_lens, ops_types, f_ops);
-    // uintptr_t *val_arr_ops = numa_alloc_onnode(sizeof(uintptr_t) * num_ops, LOCAL_MASK);
-    uint64_t *val_arr_ops = numa_alloc_onnode(sizeof(uint64_t) * num_ops, VAL_LOC_MASK);
 
     fclose(f_ops);
 
@@ -144,16 +139,16 @@ int main(int argc, char *argv[])
     art_tree t;
     int res = art_tree_init(&t);
     { // for printing accessed addr
-        // char acc_addr_path[64];
-        // snprintf(acc_addr_path, sizeof(acc_addr_path),
-        //          "access_addr.txt");
-        // acc_fd = fopen(acc_addr_path, "w");
+      // char acc_addr_path[64];
+      // snprintf(acc_addr_path, sizeof(acc_addr_path),
+      //          "access_addr.txt");
+      // acc_fd = fopen(acc_addr_path, "w");
     }
 
     // populate art
     size_t off = 0;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
-    populate_art(&t, keys, key_lens, num_keys, val_arr_keys);
+    populate_art(&t, keys, key_lens, num_keys);
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     insert_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
@@ -169,8 +164,8 @@ int main(int argc, char *argv[])
 
     // measure ops perf
     clock_gettime(CLOCK_MONOTONIC, &t_start);
-    measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops, val_arr_ops);
-    // measure_ops_perf_threading(&t, ops, ops_lens, ops_types, num_ops, val_arr_ops);
+    measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
+    // measure_ops_perf_threading(&t, ops, ops_lens, ops_types, num_ops);
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     ops_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
@@ -208,7 +203,7 @@ int main(int argc, char *argv[])
     }
     fflush(stdout);
     { // for printing accessed addr
-        // fclose(acc_fd);
+      // fclose(acc_fd);
     }
     {
         // FILE *self_ref_fd = fopen("self_ref.json", "w");
@@ -226,8 +221,6 @@ int main(int argc, char *argv[])
     numa_free(ops_lens, MAX_OPS * sizeof(int));
     numa_free(ops_types, MAX_OPS * sizeof(op_t));
 
-    numa_free(val_arr_keys, sizeof(uint64_t) * num_keys);
-    numa_free(val_arr_ops, sizeof(uint64_t) * num_ops);
     return 0;
 }
 
@@ -321,7 +314,7 @@ int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f)
     return num_ops;
 }
 
-void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys, uint64_t *val_arr_keys)
+void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys)
 {
     size_t offset = 0;
 
@@ -329,18 +322,13 @@ void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys, uint6
     {
         const unsigned char *key_ptr = (const unsigned char *)(keys + offset);
         int key_len = key_lens[i];
-        val_arr_keys[i] = i + 1;
-        // val_arr_keys->value0 = i;
-        // val_arr_keys->value1 = i + 2;
-        // val_arr_keys->value2 = i + 5;
-        // val_arr_keys->value3 = i + 98;
-        art_insert(tree, key_ptr, key_len, &val_arr_keys[i]);
+        art_insert(tree, key_ptr, key_len, (void *)(uintptr_t)(i + 1));
 
         offset += key_lens[i];
     }
 }
 
-void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops, uint64_t *val_arr_ops)
+void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops)
 {
     int none_null_cnt = 0;
     size_t offset = 0;
@@ -358,14 +346,14 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             void *val = art_search(tree, ops_ptr, ops_len);
             if (val)
             {
-                total_val += *(uintptr_t *)val;
+                // total_val += *(uintptr_t *)val;
+                total_val += (uintptr_t)val;
                 none_null_cnt++;
             }
         }
         else if (ops_type == OP_UPDATE || ops_type == OP_INSERT)
         {
-            val_arr_ops[i] = i + 1;
-            art_insert(tree, ops_ptr, ops_len, &val_arr_ops[i]);
+            art_insert(tree, ops_ptr, ops_len, (void *)(uintptr_t)(i + 1));
         }
         if (i == 0)
         // if (i == 100000 - 1)
@@ -410,7 +398,6 @@ typedef struct
     op_t *ops_types;
     int start;
     int end;
-    uint64_t *val_arr_ops;
     uintptr_t local_total;
     int local_count;
 } thread_arg_t;
@@ -438,19 +425,13 @@ static void *thread_worker(void *arg)
                 targ->local_count++;
             }
         }
-        // else if (ops_type == OP_INSERT || ops_type == OP_UPDATE)
-        // {
-        //     targ->val_arr_ops[i] = i + 1;
-        //     art_insert(targ->tree, ops_ptr, ops_len, &targ->val_arr_ops[i]);
-        // }
-
         offset += ops_len; // advance to next key
     }
 
     return NULL;
 }
 
-void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops, uint64_t *val_arr_ops)
+void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops)
 {
     pthread_t threads[num_thread];
     thread_arg_t args[num_thread];
@@ -466,7 +447,6 @@ void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *
         args[i].end = (i + 1) * chunk;
         if (args[i].end > num_ops)
             args[i].end = num_ops;
-        args[i].val_arr_ops = val_arr_ops;
         args[i].local_total = 0;
         args[i].local_count = 0;
         pthread_create(&threads[i], NULL, thread_worker, &args[i]);

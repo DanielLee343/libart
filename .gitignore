@@ -3,4 +3,6 @@
 *~
 test_runner
 src/libart.so
-tests
+tests/*
+!tests/value.c
+!tests/Makefile
