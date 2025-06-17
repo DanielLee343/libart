@@ -10,9 +10,9 @@
 #include "art.h"
 
 #define MAX_KEYS 120000000
-#define MAX_OPS 120000000
+#define MAX_OPS 120000001
 #define AVG_KEY_LEN 30
-#define MAX_LINE_LEN 40
+#define MAX_LINE_LEN 55
 #define LOCAL_MASK 0
 #define VAL_LOC_MASK 0
 #define MAX_DEPTH 35

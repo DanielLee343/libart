@@ -1,5 +1,6 @@
 #!/bin/bash
-wl="email_workloada"
+bin=$1
+wl=$2
 FP_FILE=total_fp.txt
 NUMA_FP_FILE=numa_fp.txt
 
@@ -13,7 +14,7 @@ numactl -m1 -- cat /mnt/data_bk/zipfian/load_email_workloada >/dev/null
 numactl -m1 -- cat /mnt/data_bk/zipfian/txn_email_workloada >/dev/null
 {
     fppng="${output_dir}/${wl}_fp.png"
-    numactl --physcpubind=0 -- ./value "${wl}" &
+    numactl --physcpubind=0 -- ./$bin "${wl}" &
     check_pid=$!
     while [ -d "/proc/${check_pid}" ]; do
         ps -o rss= -p "$check_pid" >>$FP_FILE

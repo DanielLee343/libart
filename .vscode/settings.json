@@ -28,6 +28,8 @@
         "system_error": "c",
         "string.h": "c",
         "assert.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "numa.h": "c",
+        "stdbool.h": "c"
     }
 }

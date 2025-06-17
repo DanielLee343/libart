@@ -25,18 +25,18 @@
 // #define NUM_LEAF_PAGE 772096
 
 // email finer control
-#define NUM_4_PAGE 279912
-#define NUM_16_PAGE 187757
-#define NUM_48_PAGE 105770
-#define NUM_256_PAGE 6
-#define NUM_LEAF_PAGE 772096
+// #define NUM_4_PAGE 279912
+// #define NUM_16_PAGE 187757
+// #define NUM_48_PAGE 105770
+// #define NUM_256_PAGE 6
+// #define NUM_LEAF_PAGE 720000
 
 // email a_ext_10
-// #define NUM_4_PAGE 635460
-// #define NUM_16_PAGE 448308
-// #define NUM_48_PAGE 383847
-// #define NUM_256_PAGE 626600
-// #define NUM_LEAF_PAGE 7720960
+#define NUM_4_PAGE 573440
+#define NUM_16_PAGE 396800
+#define NUM_48_PAGE 353792
+#define NUM_256_PAGE 235100
+#define NUM_LEAF_PAGE 2287400
 
 // randint
 // #define NUM_LEAF_PAGE 2930000
@@ -152,6 +152,9 @@ static art_node *alloc_node(uint8_t type)
 #endif
 #if CNT
         node256_cnt++;
+#endif
+#if STREAM_ACC_ADDR_256
+        fprintf(acc_fd, "%lu,%d\n", (unsigned long)n, type_map[n->type]);
 #endif
         break;
     default:

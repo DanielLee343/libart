@@ -73,12 +73,13 @@ extern "C"
 #define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
 #define OFFLINE_REORDER_ALL 0 // perform offline reordering based on depth only
 #define STREAM_ACC_ADDR 0     // stream accessed address for each node, should only be enabled for debugging
-#define ONLINE 0              // online swapping
-#define SELF_REF 0            // adding self_ref
-#define DUMP_SELF_REF 0       // dump self_ref to file
-#define DFS 0                 // do dfs to dump node and path hotness
-#define VIS 0                 // visualize tree
-#define FIRST_TOUCH 1         // measuring NUMA first touch
+#define STREAM_ACC_ADDR_256 0
+#define ONLINE 0        // online swapping
+#define SELF_REF 0      // adding self_ref
+#define DUMP_SELF_REF 0 // dump self_ref to file
+#define DFS 0           // do dfs to dump node and path hotness
+#define VIS 0           // visualize tree
+#define FIRST_TOUCH 1   // measuring NUMA first touch
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
@@ -411,7 +412,7 @@ inline uint64_t art_size(art_tree *t)
     int all_type_moved_local = 0;
     int all_type_moved_cxl = 0;
 #endif
-#if STREAM_ACC_ADDR
+#if STREAM_ACC_ADDR || STREAM_ACC_ADDR_256
     FILE *acc_fd;
     int start_acc_streaming = 0;
 #endif

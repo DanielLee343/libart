@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,14 +6,13 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdbool.h>
-#include "art.h"
+#include <unistd.h>
 
 #define MAX_KEYS 120000000
-#define MAX_OPS 120000000
+#define MAX_OPS 120000001
 #define AVG_KEY_LEN 30
-#define MAX_LINE_LEN 40
+#define MAX_LINE_LEN 55
 #define LOCAL_MASK 0
-int num_thread = 1;
 
 typedef enum
 {
@@ -33,10 +31,6 @@ typedef struct
 
 int pre_load_data(char *keys, int *key_lens, FILE *f);
 int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f);
-void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys);
-void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops);
-void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops);
-int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value);
 
 static double elapsed_ms(struct timespec start, struct timespec end)
 {
@@ -51,16 +45,6 @@ int main(int argc, char *argv[])
     //     fprintf(stderr, "Usage: %s <input_file>\n", argv[0]);
     //     return 1;
     // }
-    if (argc > 2)
-    {
-        num_thread = atoi(argv[2]);
-        if (num_thread <= 0)
-        {
-            fprintf(stderr, "Invalid number of threads: %s\n", argv[2]);
-            return 1;
-        }
-    }
-    printf("num_thread = %d\n", num_thread);
     struct timespec t_start, t_end;
     double insert_ms = 0, ops_ms = 0;
     char input_path[128];
@@ -230,156 +214,5 @@ int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f)
         cur += len;
         num_ops++;
     }
-
     return num_ops;
-}
-
-void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys)
-{
-    size_t offset = 0;
-
-    for (int i = 0; i < num_keys; i++)
-    {
-        const unsigned char *key_ptr = (const unsigned char *)(keys + offset);
-        int key_len = key_lens[i];
-        art_insert(tree, key_ptr, key_len, (void *)(uintptr_t)(i + 1));
-
-        offset += key_lens[i];
-    }
-}
-
-void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops)
-{
-    int none_null_cnt = 0;
-    size_t offset = 0;
-    uintptr_t total_val = 0;
-    char hit_cnt_path[128];
-    int stream_counter = 0;
-    for (int i = 0; i < num_ops; i++)
-    {
-        const unsigned char *ops_ptr = (const unsigned char *)(ops + offset);
-        int ops_len = ops_lens[i];
-        int ops_type = ops_types[i];
-        void *value = (void *)(uintptr_t)i;
-        if (ops_type == OP_READ)
-        {
-            void *val = art_search(tree, ops_ptr, ops_len);
-            if (val)
-            {
-                // total_val += *(uintptr_t *)val;
-                total_val += (uintptr_t)val;
-                none_null_cnt++;
-            }
-        }
-        else if (ops_type == OP_UPDATE || ops_type == OP_INSERT)
-        {
-            art_insert(tree, ops_ptr, ops_len, (void *)(uintptr_t)(i + 1));
-        }
-        if (i == 0)
-        // if (i == 100000 - 1)
-        {
-            // printf("streaming %d...\n", stream_counter);
-            // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
-            //          "zipfian/email_a_hotness/%d.txt", stream_counter);
-            // FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
-            // stream_node_hit_counts_individual(tree->root, hit_cnt_fd);
-            // cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
-            // fclose(hit_cnt_fd);
-            // stream_counter++;
-            // sort_hotness(node4_hot, node4_local_alloc_cnt, true);
-            // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false);
-            // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
-            // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
-            // sort_hotness(node16_hot, node16_local_alloc_cnt, true);
-            // sort_hotness(node16_cold, node16_cxl_alloc_cnt, false);
-            // sort_hotness(node48_hot, node48_local_alloc_cnt);
-            // sort_hotness(node48_cold, node48_cxl_alloc_cnt);
-        }
-
-        offset += ops_len;
-    }
-    printf("# found: %d, total_val: %ld\n", none_null_cnt, total_val);
-}
-int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value)
-{
-    int *counter = (int *)data;
-    for (unsigned int i = 0; i < key_len; i++)
-        printf("%02x ", key[i]);
-    printf("\nkey = \"%.*s\", value = %p\n", key_len, key, value);
-    (*counter)++;
-    return 0;
-}
-
-typedef struct
-{
-    art_tree *tree;
-    char *ops;
-    int *ops_lens;
-    op_t *ops_types;
-    int start;
-    int end;
-    uintptr_t local_total;
-    int local_count;
-} thread_arg_t;
-
-static void *thread_worker(void *arg)
-{
-    thread_arg_t *targ = (thread_arg_t *)arg;
-    int offset = 0;
-    for (int i = 0; i < targ->start; i++)
-        offset += targ->ops_lens[i];
-
-    printf("%d - %d\n", targ->start, targ->end);
-    for (int i = targ->start; i < targ->end; ++i)
-    {
-        const unsigned char *ops_ptr = (const unsigned char *)(targ->ops + offset);
-        int ops_len = targ->ops_lens[i];
-        int ops_type = targ->ops_types[i];
-
-        if (ops_type == OP_READ)
-        {
-            void *val = art_search(targ->tree, ops_ptr, ops_len);
-            if (val)
-            {
-                targ->local_total += *(uintptr_t *)val;
-                targ->local_count++;
-            }
-        }
-        offset += ops_len; // advance to next key
-    }
-
-    return NULL;
-}
-
-void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops)
-{
-    pthread_t threads[num_thread];
-    thread_arg_t args[num_thread];
-
-    int chunk = (num_ops + num_thread - 1) / num_thread;
-    for (int i = 0; i < num_thread; ++i)
-    {
-        args[i].tree = tree;
-        args[i].ops = ops;
-        args[i].ops_lens = ops_lens;
-        args[i].ops_types = ops_types;
-        args[i].start = i * chunk;
-        args[i].end = (i + 1) * chunk;
-        if (args[i].end > num_ops)
-            args[i].end = num_ops;
-        args[i].local_total = 0;
-        args[i].local_count = 0;
-        pthread_create(&threads[i], NULL, thread_worker, &args[i]);
-    }
-
-    int total_count = 0;
-    uintptr_t total_val = 0;
-    for (int i = 0; i < num_thread; ++i)
-    {
-        pthread_join(threads[i], NULL);
-        total_count += args[i].local_count;
-        total_val += args[i].local_total;
-    }
-
-    printf("# found: %d, total_val: %ld\n", total_count, total_val);
 }
