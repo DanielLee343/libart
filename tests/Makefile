@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -O2
 LDFLAGS = -lart -lmemkind -lnuma -lpthread
-TARGET = no_op
-SRC = no_op.c
+TARGET = value
+SRC = value.c
 
 .PHONY: all clean
 

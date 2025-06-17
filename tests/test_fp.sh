@@ -10,8 +10,8 @@ output_dir="perf_out/fp"
 rm -rf $FP_FILE
 rm -rf $NUMA_FP_FILE
 echo 3 | sudo tee /proc/sys/vm/drop_caches
-numactl -m1 -- cat /mnt/data_bk/zipfian/load_email_workloada >/dev/null
-numactl -m1 -- cat /mnt/data_bk/zipfian/txn_email_workloada >/dev/null
+numactl -m1 -- cat /mnt/data_bk/zipfian/load_${wl} >/dev/null
+numactl -m1 -- cat /mnt/data_bk/zipfian/txn_${wl} >/dev/null
 {
     fppng="${output_dir}/${wl}_fp.png"
     numactl --physcpubind=0 -- ./$bin "${wl}" &
