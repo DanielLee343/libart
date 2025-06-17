@@ -13,7 +13,7 @@ numactl -m1 -- cat /mnt/data_bk/zipfian/load_email_workloada >/dev/null
 numactl -m1 -- cat /mnt/data_bk/zipfian/txn_email_workloada >/dev/null
 {
     fppng="${output_dir}/${wl}_fp.png"
-    ./value "${wl}" &
+    numactl --physcpubind=0 -- ./value "${wl}" &
     check_pid=$!
     while [ -d "/proc/${check_pid}" ]; do
         ps -o rss= -p "$check_pid" >>$FP_FILE
