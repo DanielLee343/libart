@@ -14,9 +14,6 @@
 #define AVG_KEY_LEN 30
 #define MAX_LINE_LEN 40
 #define LOCAL_MASK 0
-#define VAL_LOC_MASK 0
-#define MAX_DEPTH 35
-// #define NUM_THREADS 1
 int num_thread = 1;
 
 typedef enum
@@ -136,84 +133,7 @@ int main(int argc, char *argv[])
 
     printf("Loaded %d ops\n", num_ops);
 
-    art_tree t;
-    int res = art_tree_init(&t);
-    { // for printing accessed addr
-      // char acc_addr_path[64];
-      // snprintf(acc_addr_path, sizeof(acc_addr_path),
-      //          "access_addr.txt");
-      // acc_fd = fopen(acc_addr_path, "w");
-    }
-
-    // populate art
-    size_t off = 0;
-    clock_gettime(CLOCK_MONOTONIC, &t_start);
-    populate_art(&t, keys, key_lens, num_keys);
-    clock_gettime(CLOCK_MONOTONIC, &t_end);
-    insert_ms = elapsed_ms(t_start, t_end);
-    fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
-    fflush(stdout);
-    {
-        // reset_node_hit_cnt_total(); // resets for global metadata
-        // cooling_node_hit_cnt_individual(t.root, 0); // resets for individual
-        // distribute_nodes(t.root, &t.root, 0);
-        // print_node_move_stat();
-        // start_acc_streaming = 1;
-        // stream_node_type_addr(t.root, stdout);
-    }
-
-    // measure ops perf
-    clock_gettime(CLOCK_MONOTONIC, &t_start);
-    measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
-    // measure_ops_perf_threading(&t, ops, ops_lens, ops_types, num_ops);
-    clock_gettime(CLOCK_MONOTONIC, &t_end);
-    ops_ms = elapsed_ms(t_start, t_end);
-    fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
-    {
-        node_cnt_stat();
-        // char level_stats_path[64];
-        // snprintf(level_stats_path, sizeof(level_stats_path),
-        //          "zipfian/level_stats_%s.txt", argv[1]);
-        // FILE *level_stats_fd = fopen(level_stats_path, "w");
-        // stream_level_distribution(t.root, level_stats_fd);
-        // fclose(level_stats_fd);
-        // node_hit_cnt_total();
-        // char hit_cnt_path[64];
-        // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
-        //          "zipfian/hit_count_%s.txt", argv[1]);
-        // FILE *hit_cnt_fd = fopen(hit_cnt_path, "w");
-        // stream_node_hit_counts_individual(t.root, hit_cnt_fd);
-        // fclose(hit_cnt_fd);
-
-        // node_depth_stats_t stat = {0};
-        // FILE *depth_fd = fopen("depth_file.txt", "w"); // stream node type addr and size
-        // collect_node_depths(t.root, 0, &stat, depth_fd);
-        // print_avg_node_depths(&stat);
-        // fclose(depth_fd);
-        {
-            // char hotness_path_file[128];
-            // snprintf(hotness_path_file, sizeof(hotness_path_file),
-            //          "/mnt/data_bk/hotness_depth_%s.txt", argv[1]);
-            // FILE *hotness_path = fopen(hotness_path_file, "w");
-            // int hit_cnt_path[MAX_DEPTH];
-            // void *node_path[MAX_DEPTH];
-            // dfs_print_hit_cnt_path(t.root, 0, hit_cnt_path, node_path, hotness_path);
-            // fclose(hotness_path);
-        }
-    }
-    fflush(stdout);
-    { // for printing accessed addr
-      // fclose(acc_fd);
-    }
-    {
-        // FILE *self_ref_fd = fopen("self_ref.json", "w");
-        // fprintf(self_ref_fd, "{ \"tree\": ");
-        // dump_self_ref_json(self_ref_fd, t.root);
-        // fprintf(self_ref_fd, " }\n");
-        // fclose(self_ref_fd);
-    }
-    // cleaning
-    // res = art_tree_destroy(&t);
+    sleep(10);
     numa_free(keys, (size_t)MAX_KEYS * AVG_KEY_LEN);
     numa_free(key_lens, sizeof(int) * MAX_KEYS);
 
