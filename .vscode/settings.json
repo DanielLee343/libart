@@ -30,6 +30,7 @@
         "assert.h": "c",
         "stdio.h": "c",
         "numa.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "algorithm": "c"
     }
 }

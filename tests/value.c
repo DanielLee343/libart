@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     printf("Loaded %d ops\n", num_ops);
 
     art_tree t;
-    int res = art_tree_init(&t);
+    int res = art_tree_init(&t, argv[1]);
     { // for printing accessed addr
       // char acc_addr_path[64];
       // snprintf(acc_addr_path, sizeof(acc_addr_path),
@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
         // print_node_move_stat();
         // start_acc_streaming = 1;
         // stream_node_type_addr(t.root, stdout);
+        // node_cnt_stat();
     }
 
     // measure ops perf
@@ -208,10 +209,11 @@ int main(int argc, char *argv[])
     {
         // FILE *self_ref_fd = fopen("self_ref.json", "w");
         // fprintf(self_ref_fd, "{ \"tree\": ");
-        // dump_self_ref_json(self_ref_fd, t.root);
+        // dump_self_ref_json(self_ref_fd, t.root, NULL);
         // fprintf(self_ref_fd, " }\n");
         // fclose(self_ref_fd);
     }
+    show_stat();
     // cleaning
     // res = art_tree_destroy(&t);
     numa_free(keys, (size_t)MAX_KEYS * AVG_KEY_LEN);
@@ -325,6 +327,10 @@ void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys)
         art_insert(tree, key_ptr, key_len, (void *)(uintptr_t)(i + 1));
 
         offset += key_lens[i];
+        // if (i % 1200000 == 0)
+        // {
+        //     node_cnt_stat();
+        // }
     }
 }
 

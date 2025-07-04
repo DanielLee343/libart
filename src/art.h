@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <memkind.h>
+#include <math.h>
 #include <unistd.h>
 #ifndef ART_H
 #define ART_H
@@ -68,18 +69,20 @@ extern "C"
 #define CNT 1                 // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0       // bookkeeping # hit for diff node types
 #define DEPTH_INDI 1          // bookkeeping avg depth for individual node
-#define HIT_DIST 0            // for # hit distribution for diff node types
+#define HIT_DIST 1            // for # hit distribution for diff node types
 #define LEVEL_ORDER 0         // perform level traversal to collect node type composition
 #define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
 #define OFFLINE_REORDER_ALL 0 // perform offline reordering based on depth only
 #define STREAM_ACC_ADDR 0     // stream accessed address for each node, should only be enabled for debugging
 #define STREAM_ACC_ADDR_256 0
-#define ONLINE 0        // online swapping
-#define SELF_REF 0      // adding self_ref
-#define DUMP_SELF_REF 0 // dump self_ref to file
-#define DFS 0           // do dfs to dump node and path hotness
-#define VIS 0           // visualize tree
-#define FIRST_TOUCH 1   // measuring NUMA first touch
+#define ONLINE 0         // online swapping
+#define SELF_REF 1       // adding self_ref
+#define LEAF_REF 0       // adding self_ref
+#define DFS 0            // do dfs to dump node and path hotness
+#define VIS 0            // visualize tree
+#define FIRST_TOUCH 0    // measuring NUMA first touch
+#define STATIC 1         // static placement
+#define ENABLE_PROFILE 0 // enable profiling, this cannot be enabled if STATIC is 0
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
@@ -91,44 +94,44 @@ extern "C"
      */
     struct art_node
     {
-        uint32_t partial_len;
-        uint8_t type;
-        uint8_t num_children;
-        unsigned char partial[MAX_PREFIX_LEN];
+        uint32_t partial_len;                  // 4
+        uint8_t type;                          // 1
+        uint8_t num_children;                  // 1
+        unsigned char partial[MAX_PREFIX_LEN]; // 10
 #if HIT_DIST
-        int hit_cnt;
+        int hit_cnt; // 4
 #endif
 #if DEPTH_INDI
-        uint32_t depth;
+        uint32_t depth; // 4
 #endif
-#if SELF_REF || DUMP_SELF_REF
-        art_node **self_ref;
+#if SELF_REF
+        art_node **self_ref; // 8
 #endif
 #if ONLINE
         int idx_in_arr;
         bool in_local;
 #endif
-    };
+    }; // 32
 
     /**
      * Small node with only 4 children
      */
     typedef struct
     {
-        art_node n;
-        unsigned char keys[4];
-        art_node *children[4];
-    } art_node4;
+        art_node n;            // 32
+        unsigned char keys[4]; // 4 + 4 padding = 8
+        art_node *children[4]; // 4 * 8 = 32, offset: 40
+    } art_node4;               // 72
 
     /**
      * Node with 16 children
      */
     typedef struct
     {
-        art_node n;
-        unsigned char keys[16];
-        art_node *children[16];
-    } art_node16;
+        art_node n;             // 32
+        unsigned char keys[16]; // 16 (no padding)
+        art_node *children[16]; // 16*8 = 128, offset: 48
+    } art_node16;               // 176
 
     /**
      * Node with 48 children, but
@@ -136,19 +139,19 @@ extern "C"
      */
     typedef struct
     {
-        art_node n;
-        unsigned char keys[256];
-        art_node *children[48];
-    } art_node48;
+        art_node n;              // 32
+        unsigned char keys[256]; // 256 (no padding)
+        art_node *children[48];  // 48*8 = 384, offset: 288
+    } art_node48;                // 672
 
     /**
      * Full node with 256 children
      */
     typedef struct
     {
-        art_node n;
-        art_node *children[256];
-    } art_node256;
+        art_node n;              // 32
+        art_node *children[256]; // 256 * 8 = 2048, offset: 32
+    } art_node256;               // 2080
 
     /**
      * Represents a leaf. These are
@@ -158,12 +161,12 @@ extern "C"
     {
         void *value;
         uint32_t key_len;
-        // #if DEPTH_INDI
-        //         uint32_t depth;
-        // #endif
-        // #if SELF_REF || DUMP_SELF_REF
-        //         art_node **self_ref;
-        // #endif
+// #if DEPTH_INDI
+//         uint32_t depth;
+// #endif
+#if LEAF_REF
+        art_node **self_ref;
+#endif
         unsigned char key[];
     } art_leaf;
 
@@ -180,7 +183,7 @@ extern "C"
      * Initializes an ART tree
      * @return 0 on success.
      */
-    int art_tree_init(art_tree *t);
+    int art_tree_init(art_tree *t, char *wl);
 
 /**
  * DEPRECATED
@@ -312,6 +315,8 @@ inline uint64_t art_size(art_tree *t)
 #endif
 
 #if DEPTH_INDI
+    size_t subtree_inc_func_called = 0;
+    size_t total_subtree_incremented_nodes = 0;
     // #define NODE_DEPTH(n) (((art_node *)(n))->depth)
     typedef struct
     {
@@ -378,6 +383,19 @@ inline uint64_t art_size(art_tree *t)
     void *all_type_cxl = NULL;
     struct memkind *all_type_local_kind = NULL;
     struct memkind *all_type_cxl_kind = NULL;
+    // counting move
+    // int leaf_moved_local = 0;
+    // int leaf_moved_cxl = 0;
+    int node4_moved_local = 0;
+    int node4_moved_cxl = 0;
+    int node16_moved_local = 0;
+    int node16_moved_cxl = 0;
+    int node48_moved_local = 0;
+    int node48_moved_cxl = 0;
+    int node256_moved_local = 0;
+    int node256_moved_cxl = 0;
+    int all_type_moved_local = 0;
+    int all_type_moved_cxl = 0;
     // node4
     void *node4_local = NULL;
     void *node4_cxl = NULL;
@@ -398,20 +416,47 @@ inline uint64_t art_size(art_tree *t)
     void *node256_cxl = NULL;
     struct memkind *node256_local_kind = NULL;
     struct memkind *node256_cxl_kind = NULL;
-    // counting move
-    // int leaf_moved_local = 0;
-    // int leaf_moved_cxl = 0;
-    int node4_moved_local = 0;
-    int node4_moved_cxl = 0;
-    int node16_moved_local = 0;
-    int node16_moved_cxl = 0;
-    int node48_moved_local = 0;
-    int node48_moved_cxl = 0;
-    int node256_moved_local = 0;
-    int node256_moved_cxl = 0;
-    int all_type_moved_local = 0;
-    int all_type_moved_cxl = 0;
 #endif
+#if STATIC
+    // node4
+    void *node4_local = NULL;
+    void *node4_cxl = NULL;
+    void *node16_local = NULL;
+    void *node16_cxl = NULL;
+    void *node48_local = NULL;
+    void *node48_cxl = NULL;
+    void *node256_local = NULL;
+    void *node256_cxl = NULL;
+    struct memkind *node4_local_kind = NULL;
+    struct memkind *node4_cxl_kind = NULL;
+    struct memkind *node16_local_kind = NULL;
+    struct memkind *node16_cxl_kind = NULL;
+    struct memkind *node48_local_kind = NULL;
+    struct memkind *node48_cxl_kind = NULL;
+    struct memkind *node256_local_kind = NULL;
+    struct memkind *node256_cxl_kind = NULL;
+    struct memkind *local_kinds[4];
+    struct memkind *cxl_kinds[4];
+#endif
+#if ENABLE_PROFILE
+    int node4_local_cnt = 0;
+    int node4_cxl_cnt = 0;
+    int node16_local_cnt = 0;
+    int node16_cxl_cnt = 0;
+    int node48_local_cnt = 0;
+    int node48_cxl_cnt = 0;
+    int node256_local_cnt = 0;
+    int node256_cxl_cnt = 0;
+    int node4_mis_placed = 0;
+    int node16_mis_placed = 0;
+    int node48_mis_placed = 0;
+    int node256_mis_placed = 0;
+    int *local_cnt[4];
+    int *cxl_cnt[4];
+    int *misplaced_cnt[4];
+    FILE *log_fd;
+#endif
+
 #if STREAM_ACC_ADDR || STREAM_ACC_ADDR_256
     FILE *acc_fd;
     int start_acc_streaming = 0;
@@ -450,10 +495,17 @@ inline uint64_t art_size(art_tree *t)
 #if VIS
     void print_art_tree(FILE *out, art_node *n, int indent);
 #endif
-#if DUMP_SELF_REF
-    void dump_self_ref(FILE *out, art_node *n, int indent);
-    void dump_self_ref_json(FILE *out, art_node *n);
+#if SELF_REF
+    void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
+    // void dump_self_ref_json(FILE *out, art_node *n);
 #endif
+#if STATIC
+    static void load_static_metrics(char *wl);
+    static void free_static_metrics();
+    int static_metrics_line_cnt = 0;
+    int **matrix;
+#endif
+    int show_stat();
 #ifdef __cplusplus
 }
 #endif
