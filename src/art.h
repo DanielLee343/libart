@@ -7,6 +7,7 @@
 #include <memkind.h>
 #include <math.h>
 #include <unistd.h>
+#include <stdio.h>
 #ifndef ART_H
 #define ART_H
 
@@ -19,17 +20,6 @@ extern "C"
 #define NODE16 2
 #define NODE48 3
 #define NODE256 4
-
-    void *slab_base;
-    void *bump_ptr;
-    void *node256_base;
-    void *node256_ptr;
-    void *node48_base;
-    void *node48_ptr;
-    void *node16_base;
-    void *node16_ptr;
-    void *node4_base;
-    void *node4_ptr;
 
 #define MAX_PREFIX_LEN 10
 #define LEAF_ALIGN 16
@@ -66,22 +56,20 @@ extern "C"
 #ifndef CLFLUSH256
 #define CLFLUSH256 0
 #endif
-#define CNT 1                 // bookkeeping # count for diff node types
-#define HIT_CNT_TOTAL 0       // bookkeeping # hit for diff node types
-#define DEPTH_INDI 1          // bookkeeping avg depth for individual node
-#define HIT_DIST 1            // for # hit distribution for diff node types
-#define LEVEL_ORDER 0         // perform level traversal to collect node type composition
-#define OFFLINE_REORDER 0     // perform offline reordering based on depth and node types
-#define OFFLINE_REORDER_ALL 0 // perform offline reordering based on depth only
-#define STREAM_ACC_ADDR 0     // stream accessed address for each node, should only be enabled for debugging
+#define CNT 1             // bookkeeping # count for diff node types
+#define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
+#define DEPTH_INDI 1      // bookkeeping avg depth for individual node
+#define HIT_DIST 1        // for # hit distribution for diff node types
+#define LEVEL_ORDER 0     // perform level traversal to collect node type composition
+#define STREAM_ACC_ADDR 0 // stream accessed address for each node, should only be enabled for debugging
 #define STREAM_ACC_ADDR_256 0
-#define ONLINE 0         // online swapping
+#define ONLINE 1         // online swapping
 #define SELF_REF 1       // adding self_ref
 #define LEAF_REF 0       // adding self_ref
 #define DFS 0            // do dfs to dump node and path hotness
 #define VIS 0            // visualize tree
-#define FIRST_TOUCH 0    // measuring NUMA first touch
-#define STATIC 1         // static placement
+#define FIRST_TOUCH 0    // measuring first touch
+#define STATIC 0         // static placement
 #define ENABLE_PROFILE 0 // enable profiling, this cannot be enabled if STATIC is 0
 
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
@@ -108,10 +96,10 @@ extern "C"
         art_node **self_ref; // 8
 #endif
 #if ONLINE
-        int idx_in_arr;
-        bool in_local;
+        int idx_in_arr; // 4
+        bool in_local;  // 1 + 3 padding
 #endif
-    }; // 32
+    }; // 32 + 4(online)
 
     /**
      * Small node with only 4 children
@@ -297,11 +285,11 @@ inline uint64_t art_size(art_tree *t)
      */
     int art_iter_prefix(art_tree *t, const unsigned char *prefix, int prefix_len, art_callback cb, void *data);
 #if CNT
-    unsigned long node4_cnt = 0;
-    unsigned long node16_cnt = 0;
-    unsigned long node48_cnt = 0;
-    unsigned long node256_cnt = 0;
-    unsigned long leaf_cnt = 0;
+    extern unsigned long node4_cnt;
+    extern unsigned long node16_cnt;
+    extern unsigned long node48_cnt;
+    extern unsigned long node256_cnt;
+    extern unsigned long leaf_cnt;
     void node_cnt_stat();
 #endif
 #if HIT_CNT_TOTAL
@@ -315,9 +303,8 @@ inline uint64_t art_size(art_tree *t)
 #endif
 
 #if DEPTH_INDI
-    size_t subtree_inc_func_called = 0;
-    size_t total_subtree_incremented_nodes = 0;
-    // #define NODE_DEPTH(n) (((art_node *)(n))->depth)
+    extern size_t subtree_inc_func_called;
+    extern size_t total_subtree_incremented_nodes;
     typedef struct
     {
         size_t node4_depth_total;
@@ -350,111 +337,62 @@ inline uint64_t art_size(art_tree *t)
     void stream_level_distribution(art_node *root, FILE *out);
 #endif
     void stream_node_type_addr(art_node *n, FILE *fd);
-    static void swap_art_nodes(art_node **n0, art_node **n1); // not used
     // static int check_numa_node(void *addr);
-    size_t total_leaf_count = 0;
 
     void init_region(void **base, size_t size, int use_cxl, struct memkind **kind);
     void destroy_region(void *base, size_t size, struct memkind *kind);
 
-    void *leaf_base = NULL; // mmaped ptr, for mmap and munmap
-    void *node4_base = NULL;
-    void *node16_base = NULL;
-    void *node48_base = NULL;
-    void *node256_base = NULL;
-    struct memkind *leaf_kind = NULL; // memkind ptr
-    struct memkind *node4_kind = NULL;
-    struct memkind *node16_kind = NULL;
-    struct memkind *node48_kind = NULL;
-    struct memkind *node256_kind = NULL;
+    extern void *leaf_base; // mmaped ptr, for mmap and munmap
+    extern void *node4_base;
+    extern void *node16_base;
+    extern void *node48_base;
+    extern void *node256_base;
+    extern struct memkind *leaf_kind; // memkind ptr
+    extern struct memkind *node4_kind;
+    extern struct memkind *node16_kind;
+    extern struct memkind *node48_kind;
+    extern struct memkind *node256_kind;
 #if DFS
     void dfs_print_hit_cnt_path(art_node *node, int depth, int *path, void **node_path, FILE *fd);
 #endif
-#if OFFLINE_REORDER || OFFLINE_REORDER_ALL || ONLINE
-    void distribute_nodes(art_node *n, art_node **ref, int curr_depth);
-    void print_node_move_stat();
-    // leaf
-    // void *leaf_local = NULL;                // for local mmaped ptr
-    // void *leaf_cxl = NULL;                  // for cxl mmaped ptr
-    // struct memkind *leaf_local_kind = NULL; // for local memkind ptr
-    // struct memkind *leaf_cxl_kind = NULL;   // for cxl memkind ptr
-    // all nodes new location
-    void *all_type_local = NULL;
-    void *all_type_cxl = NULL;
-    struct memkind *all_type_local_kind = NULL;
-    struct memkind *all_type_cxl_kind = NULL;
-    // counting move
-    // int leaf_moved_local = 0;
-    // int leaf_moved_cxl = 0;
-    int node4_moved_local = 0;
-    int node4_moved_cxl = 0;
-    int node16_moved_local = 0;
-    int node16_moved_cxl = 0;
-    int node48_moved_local = 0;
-    int node48_moved_cxl = 0;
-    int node256_moved_local = 0;
-    int node256_moved_cxl = 0;
-    int all_type_moved_local = 0;
-    int all_type_moved_cxl = 0;
-    // node4
-    void *node4_local = NULL;
-    void *node4_cxl = NULL;
-    struct memkind *node4_local_kind = NULL;
-    struct memkind *node4_cxl_kind = NULL;
-    // node16
-    void *node16_local = NULL;
-    void *node16_cxl = NULL;
-    struct memkind *node16_local_kind = NULL;
-    struct memkind *node16_cxl_kind = NULL;
-    // node48
-    void *node48_local = NULL;
-    void *node48_cxl = NULL;
-    struct memkind *node48_local_kind = NULL;
-    struct memkind *node48_cxl_kind = NULL;
-    // node256
-    void *node256_local = NULL;
-    void *node256_cxl = NULL;
-    struct memkind *node256_local_kind = NULL;
-    struct memkind *node256_cxl_kind = NULL;
-#endif
-#if STATIC
-    // node4
-    void *node4_local = NULL;
-    void *node4_cxl = NULL;
-    void *node16_local = NULL;
-    void *node16_cxl = NULL;
-    void *node48_local = NULL;
-    void *node48_cxl = NULL;
-    void *node256_local = NULL;
-    void *node256_cxl = NULL;
-    struct memkind *node4_local_kind = NULL;
-    struct memkind *node4_cxl_kind = NULL;
-    struct memkind *node16_local_kind = NULL;
-    struct memkind *node16_cxl_kind = NULL;
-    struct memkind *node48_local_kind = NULL;
-    struct memkind *node48_cxl_kind = NULL;
-    struct memkind *node256_local_kind = NULL;
-    struct memkind *node256_cxl_kind = NULL;
-    struct memkind *local_kinds[4];
-    struct memkind *cxl_kinds[4];
+
+#if STATIC || ONLINE
+    extern void *node4_local;
+    extern void *node4_cxl;
+    extern void *node16_local;
+    extern void *node16_cxl;
+    extern void *node48_local;
+    extern void *node48_cxl;
+    extern void *node256_local;
+    extern void *node256_cxl;
+    extern struct memkind *node4_local_kind;
+    extern struct memkind *node4_cxl_kind;
+    extern struct memkind *node16_local_kind;
+    extern struct memkind *node16_cxl_kind;
+    extern struct memkind *node48_local_kind;
+    extern struct memkind *node48_cxl_kind;
+    extern struct memkind *node256_local_kind;
+    extern struct memkind *node256_cxl_kind;
+    extern struct memkind *local_kinds[4];
+    extern struct memkind *cxl_kinds[4];
 #endif
 #if ENABLE_PROFILE
-    int node4_local_cnt = 0;
-    int node4_cxl_cnt = 0;
-    int node16_local_cnt = 0;
-    int node16_cxl_cnt = 0;
-    int node48_local_cnt = 0;
-    int node48_cxl_cnt = 0;
-    int node256_local_cnt = 0;
-    int node256_cxl_cnt = 0;
-    int node4_mis_placed = 0;
-    int node16_mis_placed = 0;
-    int node48_mis_placed = 0;
-    int node256_mis_placed = 0;
-    int *local_cnt[4];
-    int *cxl_cnt[4];
-    int *misplaced_cnt[4];
-    FILE *log_fd;
+    extern int node4_local_cnt;
+    extern int node4_cxl_cnt;
+    extern int node16_local_cnt;
+    extern int node16_cxl_cnt;
+    extern int node48_local_cnt;
+    extern int node48_cxl_cnt;
+    extern int node256_local_cnt;
+    extern int node256_cxl_cnt;
+    extern int node4_mis_placed;
+    extern int node16_mis_placed;
+    extern int node48_mis_placed;
+    extern int node256_mis_placed;
+    extern int *local_cnt[4];
+    extern int *cxl_cnt[4];
+    extern int *misplaced_cnt[4];
+    extern FILE *log_fd;
 #endif
 
 #if STREAM_ACC_ADDR || STREAM_ACC_ADDR_256
@@ -462,38 +400,40 @@ inline uint64_t art_size(art_tree *t)
     int start_acc_streaming = 0;
 #endif
 #if ONLINE
-    // bool leaf_local_full = 0;
-    bool node4_local_full = 0;
-    bool node16_local_full = 0;
-    bool node48_local_full = 0;
-    bool node256_local_full = 0; // not gonna work not, solve later
-    void **node4_hot;
-    void **node4_cold;
-    void **node16_hot;
-    void **node16_cold;
-    void **node48_hot;
-    void **node48_cold;
-    void **node256_hot;
-    void **node256_cold;
-    int node4_local_alloc_cnt = 0;
-    int node4_cxl_alloc_cnt = 0;
-    int node16_local_alloc_cnt = 0;
-    int node16_cxl_alloc_cnt = 0;
-    int node48_local_alloc_cnt = 0;
-    int node48_cxl_alloc_cnt = 0;
-    int node256_local_alloc_cnt = 0; // not using
-    int node256_cxl_alloc_cnt = 0;
+    extern bool node4_local_full;
+    extern bool node16_local_full;
+    extern bool node48_local_full;
+    extern bool node256_local_full;
+    extern art_node **node4_hot;
+    extern art_node **node4_cold;
+    extern art_node **node16_hot;
+    extern art_node **node16_cold;
+    extern art_node **node48_hot;
+    extern art_node **node48_cold;
+    extern art_node **node256_hot;
+    extern art_node **node256_cold;
+    extern int node4_local_alloc_cnt;
+    extern int node4_cxl_alloc_cnt;
+    extern int node16_local_alloc_cnt;
+    extern int node16_cxl_alloc_cnt;
+    extern int node48_local_alloc_cnt;
+    extern int node48_cxl_alloc_cnt;
+    extern int node256_local_alloc_cnt;
+    extern int node256_cxl_alloc_cnt;
+    extern int traverse_cnt;
     art_node *tiered_calloc(bool *local_full,
                             memkind_t local_kind, memkind_t cxl_kind,
                             size_t size,
-                            void **node_hot_arr, int *hot_count,
-                            void **node_cold_arr, int *cold_count);
-    void sort_hotness(void **alloced_nodes, int alloced_cnt, bool descending);
-    void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_node_arr, int cold_node_count);
-    static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr);
-#endif
-#if VIS
-    void print_art_tree(FILE *out, art_node *n, int indent);
+                            art_node **node_hot_arr, int *hot_count,
+                            art_node **node_cold_arr, int *cold_count);
+    static void sort_hotness(art_node **alloced_nodes, int alloced_cnt, bool descending);
+    static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr); // remove node from node array when freed
+    void sort_all_hotness();
+    void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count);
+    void traverse_tree_populate_min_heap(art_node *n);
+    void populate_min_heap(art_node *n);
+    void print_min_heap_stat();
+    void reset_min_heap();
 #endif
 #if SELF_REF
     void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
@@ -502,10 +442,11 @@ inline uint64_t art_size(art_tree *t)
 #if STATIC
     static void load_static_metrics(char *wl);
     static void free_static_metrics();
-    int static_metrics_line_cnt = 0;
-    int **matrix;
+    extern int static_metrics_line_cnt;
+    extern int **matrix;
 #endif
     int show_stat();
+
 #ifdef __cplusplus
 }
 #endif

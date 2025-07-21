@@ -22,6 +22,12 @@
 #define NODE48_SIZE 768.65
 #define NODE256_SIZE 2561
 
+#define TOP_K_SWAP 1000
+#define NODE4_SENSI 0.21
+#define NODE16_SENSI 0.39
+#define NODE48_SENSI 0.96
+#define NODE256_SENSI 2.4
+
 // email
 // #define NUM_4_PAGE 302600
 // #define NUM_16_PAGE 203776
@@ -236,8 +242,8 @@ static art_node *alloc_node(uint8_t type, uint32_t depth)
         break;
     case NODE256:
 #if ONLINE
-        n = (art_node *)memkind_calloc(node256_kind, 1, sizeof(art_node256)); // todo: fix later, currently all to local kind
-                                                                              // n = (art_node *)tiered_calloc(&node256_local_kind, node256_local_kind, node256_cxl_kind, sizeof(art_node256), node256_hot, &node256_local_alloc_cnt, node256_cold, &node256_cxl_alloc_cnt);
+        // n = (art_node *)memkind_calloc(node256_kind, 1, sizeof(art_node256));
+        n = (art_node *)tiered_calloc(&node256_local_full, node256_local_kind, node256_cxl_kind, sizeof(art_node256), node256_hot, &node256_local_alloc_cnt, node256_cold, &node256_cxl_alloc_cnt);
 #elif STATIC
         if (matrix[depth][type - 1])
         {
@@ -478,16 +484,6 @@ int art_tree_init(art_tree *t, char *wl)
     SHOW_DEFINE(NODE16_CXL);
     SHOW_DEFINE(NODE48_CXL);
     SHOW_DEFINE(NODE256_CXL);
-    if (OFFLINE_REORDER)
-    {
-        SHOW_DEFINE(NODE4_CUTOFF);
-        SHOW_DEFINE(NODE16_CUTOFF);
-        SHOW_DEFINE(NODE48_CUTOFF);
-    }
-    else if (OFFLINE_REORDER_ALL)
-    {
-        SHOW_DEFINE(NUM_COLO_ALL_PAGE);
-    }
     if (CLFLUSH4 || CLFLUSH16 || CLFLUSH48 || CLFLUSH256)
     {
         SHOW_DEFINE(CLFLUSH4);
@@ -500,8 +496,7 @@ int art_tree_init(art_tree *t, char *wl)
 #if ENABLE_PROFILE
     log_fd = fopen("/home/lyuze/workspace/libart/tests/out.log", "w");
 #endif
-#if STATIC
-    load_static_metrics(wl);
+#if STATIC || ONLINE
     init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE_LC, 0, &node4_local_kind);
     init_region(&node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE_CXL, 1, &node4_cxl_kind);
     init_region(&node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE_LC, 0, &node16_local_kind);
@@ -509,7 +504,7 @@ int art_tree_init(art_tree *t, char *wl)
     init_region(&node48_local, (size_t)PAGE_SIZE * NUM_48_PAGE_LC, 0, &node48_local_kind);
     init_region(&node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE_CXL, 1, &node48_cxl_kind);
     init_region(&node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE_LC, 0, &node256_local_kind);
-    init_region(&node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE_CXL, 1, &node256_cxl_kind); // violates jemalloc limit?
+    init_region(&node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE_CXL, 1, &node256_cxl_kind);
     local_kinds[0] = node4_local_kind;
     local_kinds[1] = node16_local_kind;
     local_kinds[2] = node48_local_kind;
@@ -540,42 +535,26 @@ int art_tree_init(art_tree *t, char *wl)
         assert(misplaced_cnt[i] != NULL);
     }
 #endif
-
 #else
-    // regular
     init_region(&node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, NODE4_CXL, &node4_kind);
     init_region(&node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, NODE16_CXL, &node16_kind);
     init_region(&node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, NODE48_CXL, &node48_kind);
     init_region(&node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, NODE256_CXL, &node256_kind);
 #endif
-    init_region(&leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, LEAF_CXL, &leaf_kind);
-#if OFFLINE_REORDER
-    init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE, 0, &node4_local_kind);
-    init_region(&node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE, 1, &node4_cxl_kind);
-    init_region(&node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE, 0, &node16_local_kind);
-    init_region(&node16_cxl, (size_t)PAGE_SIZE * NUM_16_PAGE, 1, &node16_cxl_kind);
-    init_region(&node48_local, (size_t)PAGE_SIZE * NUM_48_PAGE, 0, &node48_local_kind);
-    init_region(&node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE, 1, &node48_cxl_kind);
-    init_region(&node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE, 0, &node256_local_kind);
-    // init_region(&node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE, 1, &node256_cxl_kind); // do not use due to jemalloc hard-limits
-#elif OFFLINE_REORDER_ALL
-    init_region(&all_type_local, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, 0, &all_type_local_kind);
-    init_region(&all_type_cxl, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, 0, &all_type_cxl_kind);
-#elif ONLINE
-    init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, 0, &node4_local_kind);
-    init_region(&node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, 1, &node4_cxl_kind);
-    init_region(&node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, 0, &node16_local_kind);
-    init_region(&node16_cxl, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, 1, &node16_cxl_kind);
-    init_region(&node48_local, (size_t)PAGE_SIZE * NUM_48_PAGE / 2, 0, &node48_local_kind);
-    init_region(&node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE / 2, 1, &node48_cxl_kind);
-    init_region(&node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, 0, &node256_local_kind);
-    // init_region(&node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, 1, &node256_cxl_kind); // do not use due to jemalloc hard-limits
-    node4_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / 80) * sizeof(void *));
-    node4_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE / 2) / 80) * sizeof(void *));
-    node16_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE / 2) / sizeof(art_node16)) * sizeof(void *));
-    node16_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE / 2) / sizeof(art_node16)) * sizeof(void *));
-    node48_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE / 2) / sizeof(art_node48)) * sizeof(void *));
-    node48_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE / 2) / sizeof(art_node48)) * sizeof(void *));
+    init_region(&leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, LEAF_CXL, &leaf_kind); // leaf not consider tiering
+#if ONLINE
+    // metadata for online swapping
+    node4_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE) / NODE4_SIZE) * sizeof(void *));
+    node4_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_4_PAGE) / NODE4_SIZE) * sizeof(void *));
+    node16_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE) / NODE16_SIZE) * sizeof(void *));
+    node16_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_16_PAGE) / NODE16_SIZE) * sizeof(void *));
+    node48_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE) / NODE48_SIZE) * sizeof(void *));
+    node48_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE) / NODE48_SIZE) * sizeof(void *));
+    node256_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE) / NODE256_SIZE) * sizeof(void *));
+    node256_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE) / NODE256_SIZE) * sizeof(void *));
+#endif
+#if STATIC
+    load_static_metrics(wl);
 #endif
     printf("art_node size: %zu\n", sizeof(art_node));
     printf("node4 size: %zu\n", sizeof(art_node4));
@@ -714,6 +693,9 @@ static void destroy_node(art_node *n)
 #if CNT
         node256_cnt--;
 #endif
+#if ONLINE
+        update_hot_cold_arr(n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
+#endif
         break;
 
     default:
@@ -757,7 +739,7 @@ int show_stat()
 int art_tree_destroy(art_tree *t)
 {
     destroy_node(t->root);
-#if STATIC
+#if STATIC || ONLINE
     destroy_region(node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE_LC, node4_local_kind);
     destroy_region(node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE_CXL, node4_cxl_kind);
     destroy_region(node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE_LC, node16_local_kind);
@@ -766,42 +748,26 @@ int art_tree_destroy(art_tree *t)
     destroy_region(node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE_CXL, node48_cxl_kind);
     destroy_region(node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE_LC, node256_local_kind);
     destroy_region(node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE_CXL, node256_cxl_kind);
-    free_static_metrics();
 #else
     destroy_region(node4_base, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_kind);
     destroy_region(node16_base, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_kind);
     destroy_region(node48_base, (size_t)PAGE_SIZE * NUM_48_PAGE, node48_kind);
     destroy_region(node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_kind);
 #endif
-    destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind);
-#if OFFLINE_REORDER
-    destroy_region(node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_local_kind);
-    destroy_region(node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE, node4_cxl_kind);
-    destroy_region(node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_local_kind);
-    destroy_region(node16_cxl, (size_t)PAGE_SIZE * NUM_16_PAGE, node16_cxl_kind);
-    destroy_region(node48_local, (size_t)PAGE_SIZE * NUM_48_PAGE, node48_local_kind);
-    destroy_region(node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE, node48_cxl_kind);
-    destroy_region(node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_local_kind);
-// destroy_region(node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_cxl_kind);
-#elif OFFLINE_REORDER_ALL
-    destroy_region(all_type_local, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, all_type_local_kind);
-    destroy_region(all_type_cxl, (size_t)PAGE_SIZE * NUM_COLO_ALL_PAGE, all_type_cxl_kind);
+    destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind); // leaf not consider tiering
 
-#elif ONLINE
-    destroy_region(node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, node4_local_kind);
-    destroy_region(node4_cxl, (size_t)PAGE_SIZE * NUM_4_PAGE / 2, node4_cxl_kind);
-    destroy_region(node16_local, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, node16_local_kind);
-    destroy_region(node16_cxl, (size_t)PAGE_SIZE * NUM_16_PAGE / 2, node16_cxl_kind);
-    destroy_region(node48_local, (size_t)PAGE_SIZE * NUM_48_PAGE / 2, node48_local_kind);
-    destroy_region(node48_cxl, (size_t)PAGE_SIZE * NUM_48_PAGE / 2, node48_cxl_kind);
-    destroy_region(node256_local, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, node256_local_kind);
-    // destroy_region(node256_cxl, (size_t)PAGE_SIZE * NUM_256_PAGE / 2, node256_cxl_kind);
+#if ONLINE
     free(node4_hot);
     free(node4_cold);
     free(node16_hot);
     free(node16_cold);
     free(node48_hot);
     free(node48_cold);
+    free(node256_hot);
+    free(node256_cold);
+#endif
+#if STATIC
+    free_static_metrics();
 #endif
     return 0;
 }
@@ -1247,7 +1213,7 @@ static void add_child256(art_node256 *n, art_node **ref, unsigned char c, void *
     n->n.num_children++;
     n->children[c] = (art_node *)child;
 #if SELF_REF
-    ((art_node *)child)->self_ref = &n->children[c]; // never be leaf
+    ((art_node *)child)->self_ref = &n->children[c]; // could never be a leaf
 #endif
 }
 
@@ -1811,6 +1777,9 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
         }
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
+#if ONLINE
+        update_hot_cold_arr((art_node *)n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
+#endif
 #if ENABLE_PROFILE
         if (kind == node256_local_kind)
         {
@@ -1860,11 +1829,11 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
             }
         }
 
+        struct memkind *kind = memkind_detect_kind((void *)n);
+        memkind_free(kind, n);
 #if ONLINE
         update_hot_cold_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
 #endif
-        struct memkind *kind = memkind_detect_kind((void *)n);
-        memkind_free(kind, n);
 #if ENABLE_PROFILE
         if (kind == node48_local_kind)
         {
@@ -2884,203 +2853,12 @@ void stream_node_type_addr(art_node *n, FILE *fd)
 //     }
 // }
 
-#if OFFLINE_REORDER || OFFLINE_REORDER_ALL
-void distribute_nodes(art_node *n, art_node **ref, int curr_depth)
-{
-    if (!n)
-        return;
-
-    if (IS_LEAF(n))
-    {
-        return;
-    }
-
-    switch (n->type)
-    {
-    case NODE4:
-    {
-        art_node4 *old_node = (art_node4 *)n;
-        art_node4 *new_node = NULL;
-#if OFFLINE_REORDER
-        if (curr_depth < NODE4_CUTOFF)
-        {
-            new_node = (art_node4 *)memkind_calloc(node4_local_kind, 1, sizeof(art_node4));
-            memmove(new_node, old_node, sizeof(art_node4));
-            node4_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node4 *)memkind_calloc(node4_cxl_kind, 1, sizeof(art_node4));
-            memmove(new_node, old_node, sizeof(art_node4));
-            node4_moved_cxl++;
-        }
-#elif OFFLINE_REORDER_ALL
-        if (curr_depth < DEPTH_THRESH)
-        {
-            new_node = (art_node4 *)memkind_calloc(all_type_local_kind, 1, sizeof(art_node4));
-            memmove(new_node, old_node, sizeof(art_node4));
-            all_type_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node4 *)memkind_calloc(all_type_cxl_kind, 1, sizeof(art_node4));
-            memmove(new_node, old_node, sizeof(art_node4));
-            all_type_moved_cxl++;
-        }
-#endif
-        *ref = (art_node *)new_node;
-        for (int i = 0; i < new_node->n.num_children; i++)
-        {
-            distribute_nodes(new_node->children[i], &new_node->children[i], curr_depth + 1);
-        }
-        memkind_free(node4_kind, old_node);
-        break;
-    }
-    case NODE16:
-    {
-        art_node16 *old_node = (art_node16 *)n;
-        art_node16 *new_node = NULL;
-#if OFFLINE_REORDER
-        if (curr_depth < NODE16_CUTOFF)
-        {
-            new_node = (art_node16 *)memkind_calloc(node16_local_kind, 1, sizeof(art_node16));
-            memmove(new_node, old_node, sizeof(art_node16));
-            node16_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node16 *)memkind_calloc(node16_cxl_kind, 1, sizeof(art_node16));
-            memmove(new_node, old_node, sizeof(art_node16));
-            node16_moved_cxl++;
-        }
-#elif OFFLINE_REORDER_ALL
-        if (curr_depth < DEPTH_THRESH)
-        {
-            new_node = (art_node16 *)memkind_calloc(all_type_local_kind, 1, sizeof(art_node16));
-            memmove(new_node, old_node, sizeof(art_node16));
-            all_type_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node16 *)memkind_calloc(all_type_cxl_kind, 1, sizeof(art_node16));
-            memmove(new_node, old_node, sizeof(art_node16));
-            all_type_moved_cxl++;
-        }
-#endif
-        *ref = (art_node *)new_node;
-        for (int i = 0; i < new_node->n.num_children; i++)
-        {
-            distribute_nodes(new_node->children[i], &new_node->children[i], curr_depth + 1);
-        }
-        memkind_free(node16_kind, old_node);
-        break;
-    }
-    case NODE48:
-    {
-        art_node48 *old_node = (art_node48 *)n;
-        art_node48 *new_node = NULL;
-#if OFFLINE_REORDER
-        if (curr_depth < NODE48_CUTOFF)
-        {
-            new_node = (art_node48 *)memkind_calloc(node48_local_kind, 1, sizeof(art_node48));
-            memmove(new_node, old_node, sizeof(art_node48));
-            node48_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node48 *)memkind_calloc(node48_cxl_kind, 1, sizeof(art_node48));
-            memmove(new_node, old_node, sizeof(art_node48));
-            node48_moved_cxl++;
-        }
-#elif OFFLINE_REORDER_ALL
-        if (curr_depth < DEPTH_THRESH)
-        {
-            new_node = (art_node48 *)memkind_calloc(all_type_local_kind, 1, sizeof(art_node48));
-            memmove(new_node, old_node, sizeof(art_node48));
-            all_type_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node48 *)memkind_calloc(all_type_cxl_kind, 1, sizeof(art_node48));
-            memmove(new_node, old_node, sizeof(art_node48));
-            all_type_moved_cxl++;
-        }
-#endif
-        *ref = (art_node *)new_node;
-        for (int i = 0; i < 256; i++)
-        {
-            uint8_t idx = new_node->keys[i];
-            if (idx)
-                distribute_nodes(new_node->children[idx - 1], &new_node->children[idx - 1], curr_depth + 1);
-        }
-        memkind_free(node48_kind, old_node);
-        break;
-    }
-    case NODE256:
-    {
-        art_node256 *old_node = (art_node256 *)n;
-        art_node256 *new_node = NULL;
-#if OFFLINE_REORDER
-        if (1)
-        {
-            new_node = (art_node256 *)memkind_calloc(node256_local_kind, 1, sizeof(art_node256));
-            memmove(new_node, old_node, sizeof(art_node256));
-            node256_moved_local++;
-        }
-        else
-        { // do not use it
-          // new_node = (art_node256 *)memkind_calloc(node256_cxl_kind, 1, sizeof(art_node256));
-          // memmove(new_node, old_node, sizeof(art_node256));
-          // node256_moved_cxl++;
-        }
-#elif OFFLINE_REORDER_ALL
-        if (curr_depth < DEPTH_THRESH)
-        {
-            new_node = (art_node256 *)memkind_calloc(all_type_local_kind, 1, sizeof(art_node256));
-            memmove(new_node, old_node, sizeof(art_node256));
-            all_type_moved_local++;
-        }
-        else
-        {
-            new_node = (art_node256 *)memkind_calloc(all_type_cxl_kind, 1, sizeof(art_node256));
-            memmove(new_node, old_node, sizeof(art_node256));
-            all_type_moved_cxl++;
-        }
-#endif
-        *ref = (art_node *)new_node;
-        for (int i = 0; i < 256; i++)
-        {
-            if (new_node->children[i])
-                distribute_nodes(new_node->children[i], &new_node->children[i], curr_depth + 1);
-        }
-        memkind_free(node256_kind, old_node);
-        break;
-    }
-    default:
-        abort();
-    }
-}
-
-void print_node_move_stat()
-{
-#if OFFLINE_REORDER
-    printf("leaf_moved: local: %d, cxl: %d\n", leaf_moved_local, leaf_moved_cxl);
-    printf("node4_moved: local: %d, cxl: %d\n", node4_moved_local, node4_moved_cxl);
-    printf("node16_moved: local: %d, cxl: %d\n", node16_moved_local, node16_moved_cxl);
-    printf("node48_moved: local: %d, cxl: %d\n", node48_moved_local, node48_moved_cxl);
-    printf("node256_moved: local: %d, cxl: %d\n", node256_moved_local, node256_moved_cxl);
-#elif OFFLINE_REORDER_ALL
-    printf("all node types moved local: %d, cxl: %d\n", all_type_moved_local, all_type_moved_cxl);
-#endif
-}
-#endif
-
 #if ONLINE
 art_node *tiered_calloc(bool *local_full,
                         memkind_t local_kind, memkind_t cxl_kind,
                         size_t size,
-                        void **node_hot_arr, int *hot_count,
-                        void **node_cold_arr, int *cold_count)
+                        art_node **node_hot_arr, int *hot_count,
+                        art_node **node_cold_arr, int *cold_count)
 {
     art_node *ptr = NULL;
 
@@ -3109,13 +2887,13 @@ art_node *tiered_calloc(bool *local_full,
             char msg[256];
             memkind_error_message(MEMKIND_ERROR_MALLOC, msg, sizeof(msg));
             fprintf(stderr, "memkind_calloc() failed: %s\n", msg);
+            return NULL;
         }
         node_cold_arr[*cold_count] = ptr;
         ptr->idx_in_arr = *cold_count;
         ptr->in_local = false;
         (*cold_count)++;
     }
-
     return ptr;
 }
 static int sort_descending(const void *a, const void *b)
@@ -3130,14 +2908,82 @@ static int sort_ascending(const void *a, const void *b)
     const art_node *nb = *(const art_node **)b;
     return na->hit_cnt - nb->hit_cnt;
 }
-void sort_hotness(void **alloced_nodes, int alloced_cnt, bool acsending)
+
+static int sort_descending_r(const void *a, const void *b, void *arg)
 {
-    printf("==========\n");
+    uint8_t type = *(uint8_t *)arg;
+    const art_node *na = *(const art_node **)a;
+    const art_node *nb = *(const art_node **)b;
+    size_t density_a = 0;
+    size_t density_b = 0;
+    switch (type)
+    {
+    case NODE4:
+        density_a = NODE4_SENSI * na->hit_cnt;
+        density_b = NODE4_SENSI * nb->hit_cnt;
+        break;
+    case NODE16:
+        density_a = NODE16_SENSI * na->hit_cnt;
+        density_b = NODE16_SENSI * nb->hit_cnt;
+        break;
+    case NODE48:
+        density_a = NODE48_SENSI * na->hit_cnt;
+        density_b = NODE48_SENSI * nb->hit_cnt;
+        break;
+    case NODE256:
+        density_a = NODE256_SENSI * na->hit_cnt;
+        density_b = NODE256_SENSI * nb->hit_cnt;
+        break;
+    default:
+        abort();
+    }
+    return density_b - density_a;
+}
+static int sort_ascending_r(const void *a, const void *b, void *arg)
+{
+    uint8_t type = *(uint8_t *)arg;
+    const art_node *na = *(const art_node **)a;
+    const art_node *nb = *(const art_node **)b;
+    size_t density_a = 0;
+    size_t density_b = 0;
+    switch (type)
+    {
+    case NODE4:
+        density_a = NODE4_SENSI * na->hit_cnt;
+        density_b = NODE4_SENSI * nb->hit_cnt;
+        break;
+    case NODE16:
+        density_a = NODE16_SENSI * na->hit_cnt;
+        density_b = NODE16_SENSI * nb->hit_cnt;
+        break;
+    case NODE48:
+        density_a = NODE48_SENSI * na->hit_cnt;
+        density_b = NODE48_SENSI * nb->hit_cnt;
+        break;
+    case NODE256:
+        density_a = NODE256_SENSI * na->hit_cnt;
+        density_b = NODE256_SENSI * nb->hit_cnt;
+        break;
+    default:
+        abort();
+    }
+    return density_a - density_b;
+}
+static void sort_hotness(art_node **alloced_nodes, int alloced_cnt, bool acsending)
+{ // not used
+    if (alloced_cnt < 1000)
+        return;
     printf("sorting total %d\n", alloced_cnt);
     if (acsending)
-        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_ascending);
+    {
+        // qsort_r(alloced_nodes, alloced_cnt, sizeof(void *), sort_ascending_r, &type);
+        qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_ascending); // too slow, 5M/s
+    }
     else
+    {
+        // qsort_r(alloced_nodes, alloced_cnt, sizeof(void *), sort_descending_r, &type);
         qsort(alloced_nodes, alloced_cnt, sizeof(void *), sort_descending);
+    }
 
     // printf("sort result: \n");
     // for (int i = 0; i < alloced_cnt; i++)
@@ -3149,21 +2995,101 @@ void sort_hotness(void **alloced_nodes, int alloced_cnt, bool acsending)
     //            ((art_node *)alloced_nodes[i])->self_ref);
     // }
 }
-void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_node_arr, int cold_node_count)
+void heapify(art_node **arr, int N, int i)
+{
+    int smallest = i;
+    int l = 2 * i + 1;
+    int r = 2 * i + 2;
+
+    if (l < N && arr[l]->hit_cnt < arr[smallest]->hit_cnt)
+        smallest = l;
+    if (r < N && arr[r]->hit_cnt < arr[smallest]->hit_cnt)
+        smallest = r;
+
+    if (smallest != i)
+    {
+        art_node *temp = arr[i];
+        arr[i] = arr[smallest];
+        arr[smallest] = temp;
+        heapify(arr, N, smallest);
+    }
+}
+
+// Build a min-heap
+void build_min_heap(art_node **arr, int N)
+{
+    if (!arr || N <= 0)
+        return;
+
+    for (int i = N / 2 - 1; i >= 0; i--)
+        heapify(arr, N, i);
+}
+
+// Partial sort top K
+void partial_sort_top_k(art_node **arr, int N, int K, bool ascending)
+{
+    if (!arr || N <= 0 || K <= 0)
+        return;
+    if (K > N)
+        K = N;
+
+    build_min_heap(arr, N); // O(N)
+    if (ascending)
+        qsort(arr, K, sizeof(void *), sort_ascending); // O(K log K)
+    else
+        qsort(arr, K, sizeof(void *), sort_descending);
+}
+
+void sort_all_hotness()
+{
+    // sort_hotness(node4_hot, node4_local_alloc_cnt, true); // hot array ascending
+    // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false); // cold array descending
+    partial_sort_top_k(node4_hot, node4_local_alloc_cnt, TOP_K_SWAP, true);
+    partial_sort_top_k(node4_cold, node4_cxl_alloc_cnt, TOP_K_SWAP, false);
+    partial_sort_top_k(node16_hot, node16_local_alloc_cnt, TOP_K_SWAP, true);
+    partial_sort_top_k(node16_cold, node16_cxl_alloc_cnt, TOP_K_SWAP, false);
+    partial_sort_top_k(node48_hot, node48_local_alloc_cnt, TOP_K_SWAP, true);
+    partial_sort_top_k(node48_cold, node48_cxl_alloc_cnt, TOP_K_SWAP, false);
+    partial_sort_top_k(node256_hot, node256_local_alloc_cnt, TOP_K_SWAP, true);
+    partial_sort_top_k(node256_cold, node256_cxl_alloc_cnt, TOP_K_SWAP, false);
+}
+void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count)
 {
     int cur_idx = 0;
-    while (cur_idx < hot_node_count && cur_idx < cold_node_count)
+    while (cur_idx < hot_node_count && cur_idx < cold_node_count && cur_idx <= TOP_K_SWAP)
     {
-        art_node *hot_node = (art_node *)hot_node_arr[cur_idx];
-        art_node *cold_node = (art_node *)cold_node_arr[cur_idx];
+        art_node *hot_node = hot_node_arr[cur_idx];
+        art_node *cold_node = cold_node_arr[cur_idx];
+        assert(hot_node->type == cold_node->type); // must match for safe swap
 
-        // Swap content (shallow)
-        art_node tmp;
-        memcpy(&tmp, hot_node, sizeof(art_node));
-        memcpy(hot_node, cold_node, sizeof(art_node));
-        memcpy(cold_node, &tmp, sizeof(art_node));
+        size_t node_size = 0;
+        switch (hot_node->type)
+        {
+        case NODE4:
+            node_size = sizeof(art_node4);
+            break;
+        case NODE16:
+            node_size = sizeof(art_node16);
+            break;
+        case NODE48:
+            node_size = sizeof(art_node48);
+            break;
+        case NODE256:
+            node_size = sizeof(art_node256);
+            break;
+        default:
+            abort();
+        }
+        void *tmp = calloc(1, node_size);
+        assert(tmp);
+        // memcpy(&tmp, hot_node, sizeof(art_node));
+        // memcpy(hot_node, cold_node, sizeof(art_node));
+        // memcpy(cold_node, &tmp, sizeof(art_node));
+        memcpy(tmp, hot_node, node_size);
+        memcpy(hot_node, cold_node, node_size);
+        memcpy(cold_node, tmp, node_size);
+        free(tmp);
 
-        // Swap pointer references
         if (hot_node->self_ref)
             *(hot_node->self_ref) = hot_node;
         if (cold_node->self_ref)
@@ -3174,32 +3100,30 @@ void swap_hot_cold_nodes(void **hot_node_arr, int hot_node_count, void **cold_no
     printf("successfully swapped %d\n", cur_idx);
 }
 
-static void swap_art_nodes(art_node **n0, art_node **n1)
-{
-    art_node tmp;
-    memcpy(&tmp, *n0, sizeof(art_node4));
-    memcpy(*n0, *n1, sizeof(art_node4));
-    memcpy(*n1, &tmp, sizeof(art_node4));
-
-    // swap the pointers themselves
-    art_node *tmp_ptr = *n0;
-    *n0 = *n1;
-    *n1 = tmp_ptr;
-}
-static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, void **hot_arr, void **cold_arr)
+// art_node * n: node to remove
+// int *local_alloc_cnt:  current number of nodes in local (hot) array
+// int *cxl_alloc_cnt: current number of nodes in cold array
+// art_node **hot_arr: array of local allocations
+// art_node **cold_arr: array of CXL allocations
+// Explanation: “swap-and-pop” removal from a dynamic array.
+// 	1.	Removes node n from either hot_arr or cold_arr.
+// 	2.	Maintains compactness of the array by swapping the last element into the removed spot.
+// 	3.	Updates idx_in_arr on the moved element.
+// 	4.	Marks the removed node’s idx_in_arr as -1 (invalid).
+static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr)
 {
     int idx = n->idx_in_arr;
     int last = 0;
-    n->idx_in_arr = -1;
+    n->idx_in_arr = -1; // Mark as no longer tracked
     if (n->in_local)
     {
         last = *local_alloc_cnt - 1;
         if (idx != last)
         {
-            hot_arr[idx] = hot_arr[last];
-            ((art_node *)hot_arr[idx])->idx_in_arr = idx;
+            hot_arr[idx] = hot_arr[last];                 // move last node into deleted slot
+            ((art_node *)hot_arr[idx])->idx_in_arr = idx; // fix moved node's idx
         }
-        (*local_alloc_cnt)--;
+        (*local_alloc_cnt)--; // shrink array
     }
     else
     {
@@ -3210,6 +3134,60 @@ static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_allo
             ((art_node *)cold_arr[idx])->idx_in_arr = idx;
         }
         (*cxl_alloc_cnt)--;
+    }
+}
+
+void traverse_tree_populate_min_heap(art_node *n)
+{
+    if (!n || IS_LEAF(n))
+        return;
+    traverse_cnt++;
+    if (n->type != NODE4)
+    {
+        populate_min_heap(n);
+    }
+
+    switch (n->type)
+    {
+    case NODE4:
+    {
+        art_node4 *node = (art_node4 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+            traverse_tree_populate_min_heap(node->children[i]);
+        break;
+    }
+    case NODE16:
+    {
+        art_node16 *node = (art_node16 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+            traverse_tree_populate_min_heap(node->children[i]);
+        break;
+    }
+    case NODE48:
+    {
+        art_node48 *node = (art_node48 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->keys[i])
+            {
+                int idx = node->keys[i] - 1;
+                traverse_tree_populate_min_heap(node->children[idx]);
+            }
+        }
+        break;
+    }
+    case NODE256:
+    {
+        art_node256 *node = (art_node256 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->children[i])
+                traverse_tree_populate_min_heap(node->children[i]);
+        }
+        break;
+    }
+    default:
+        break;
     }
 }
 #endif
@@ -3294,83 +3272,7 @@ static void print_indent(FILE *out, int indent)
         fprintf(out, "  ");
     }
 }
-#if VIS
-void print_art_tree(FILE *out, art_node *n, int indent)
-{
-    if (!n)
-        return;
 
-    if (IS_LEAF(n))
-    {
-        art_leaf *l = LEAF_RAW(n);
-        print_indent(out, indent);
-        fprintf(out, "leaf: \"%s\" (depth=%u)\n", l->key, l->depth);
-        return;
-    }
-
-    print_indent(out, indent);
-    fprintf(out, "node: type=%d, children=%d, depth=%u\n", n->type, n->num_children, n->depth);
-
-    switch (n->type)
-    {
-    case NODE4:
-    {
-        art_node4 *node = (art_node4 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-        {
-            print_indent(out, indent + 1);
-            fprintf(out, "'%c' -> ", node->keys[i]);
-            print_art_tree(out, node->children[i], indent + 2);
-        }
-        break;
-    }
-    case NODE16:
-    {
-        art_node16 *node = (art_node16 *)n;
-        for (int i = 0; i < node->n.num_children; i++)
-        {
-            print_indent(out, indent + 1);
-            fprintf(out, "'%c' -> ", node->keys[i]);
-            print_art_tree(out, node->children[i], indent + 2);
-        }
-        break;
-    }
-    case NODE48:
-    {
-        art_node48 *node = (art_node48 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->keys[i])
-            {
-                int idx = node->keys[i] - 1;
-                print_indent(out, indent + 1);
-                fprintf(out, "'%c' -> ", i);
-                print_art_tree(out, node->children[idx], indent + 2);
-            }
-        }
-        break;
-    }
-    case NODE256:
-    {
-        art_node256 *node = (art_node256 *)n;
-        for (int i = 0; i < 256; i++)
-        {
-            if (node->children[i])
-            {
-                print_indent(out, indent + 1);
-                fprintf(out, "'%c' -> ", i);
-                print_art_tree(out, node->children[i], indent + 2);
-            }
-        }
-        break;
-    }
-    default:
-        print_indent(out, indent);
-        fprintf(out, "Unknown node type %d\n", n->type);
-        break;
-    }
-}
-#endif
 #if SELF_REF
 void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr)
 {

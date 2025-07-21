@@ -31,6 +31,12 @@
         "stdio.h": "c",
         "numa.h": "c",
         "stdbool.h": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "cstdint": "c",
+        "atomic": "c",
+        "cmath": "c",
+        "unordered_map": "c",
+        "fstream": "c",
+        "limits": "c"
     }
 }

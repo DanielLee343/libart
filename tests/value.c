@@ -146,7 +146,6 @@ int main(int argc, char *argv[])
     }
 
     // populate art
-    size_t off = 0;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
     populate_art(&t, keys, key_lens, num_keys);
     clock_gettime(CLOCK_MONOTONIC, &t_end);
@@ -333,7 +332,6 @@ void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys)
         // }
     }
 }
-
 void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops)
 {
     int none_null_cnt = 0;
@@ -341,6 +339,9 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
     uintptr_t total_val = 0;
     char hit_cnt_path[128];
     int stream_counter = 0;
+    struct timespec t_start, t_end;
+    double sort_ms = 0;
+    double sort_time_total = 0.0;
     for (int i = 0; i < num_ops; i++)
     {
         const unsigned char *ops_ptr = (const unsigned char *)(ops + offset);
@@ -361,8 +362,8 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
         {
             art_insert(tree, ops_ptr, ops_len, (void *)(uintptr_t)(i + 1));
         }
-        if (i == 0)
-        // if (i == 100000 - 1)
+        // if (i == 0)
+        if (i % 1000000 == 0) // total 10 times
         {
             // printf("streaming %d...\n", stream_counter);
             // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
@@ -372,19 +373,20 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // cooling_node_hit_cnt_individual(tree->root, 0.1); // perform cooling
             // fclose(hit_cnt_fd);
             // stream_counter++;
-            // sort_hotness(node4_hot, node4_local_alloc_cnt, true);
-            // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false);
-            // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
-            // swap_hot_cold_nodes(node4_hot, node4_local_alloc_cnt, node4_cold, node4_cxl_alloc_cnt);
-            // sort_hotness(node16_hot, node16_local_alloc_cnt, true);
-            // sort_hotness(node16_cold, node16_cxl_alloc_cnt, false);
-            // sort_hotness(node48_hot, node48_local_alloc_cnt);
-            // sort_hotness(node48_cold, node48_cxl_alloc_cnt);
+            clock_gettime(CLOCK_MONOTONIC, &t_start);
+            // sort_all_hotness();
+            traverse_tree_populate_min_heap(tree->root);
+            clock_gettime(CLOCK_MONOTONIC, &t_end);
+            sort_ms = elapsed_ms(t_start, t_end);
+            sort_time_total += sort_ms;
+            fprintf(stdout, "sort: %.3f\n", sort_ms / 1000);
+            print_min_heap_stat();
+            reset_min_heap();
         }
 
         offset += ops_len;
     }
-    printf("# found: %d, total_val: %ld\n", none_null_cnt, total_val);
+    printf("# found: %d, total_val: %ld, sort_time_total: %.3f\n", none_null_cnt, total_val, sort_time_total / 1000);
 }
 int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value)
 {
