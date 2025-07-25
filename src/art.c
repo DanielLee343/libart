@@ -20,6 +20,11 @@
 #define SET_LEAF(x) ((void *)((uintptr_t)x | 1))
 #define LEAF_RAW(x) ((art_leaf *)((void *)((uintptr_t)x & ~1)))
 
+#define PAGE_SIZE 4096UL
+#define NUM_4_PAGE 496396UL
+#define NUM_16_PAGE 240034UL
+#define NUM_48_PAGE 247328UL
+#define NUM_256_PAGE 1300000UL
 /**
  * Allocates a node of the given type,
  * initializes to zero and sets the type.
@@ -30,16 +35,32 @@ static art_node *alloc_node(uint8_t type)
     switch (type)
     {
     case NODE4:
+#if CUS_ALLOC
+        n = (art_node *)alloc_node_cus(&na_node4);
+#else
         n = (art_node *)calloc(1, sizeof(art_node4));
+#endif
         break;
     case NODE16:
+#if CUS_ALLOC
+        n = (art_node *)alloc_node_cus(&na_node16);
+#else
         n = (art_node *)calloc(1, sizeof(art_node16));
+#endif
         break;
     case NODE48:
+#if CUS_ALLOC
+        n = (art_node *)alloc_node_cus(&na_node48);
+#else
         n = (art_node *)calloc(1, sizeof(art_node48));
+#endif
         break;
     case NODE256:
+#if CUS_ALLOC
+        n = (art_node *)alloc_node_cus(&na_node256);
+#else
         n = (art_node *)calloc(1, sizeof(art_node256));
+#endif
         break;
     default:
         abort();
@@ -56,6 +77,16 @@ int art_tree_init(art_tree *t)
 {
     t->root = NULL;
     t->size = 0;
+#if CUS_ALLOC
+    init_allocator(&na_node4, (size_t)(NUM_4_PAGE * PAGE_SIZE) / sizeof(art_node4), sizeof(art_node4));
+    init_allocator(&na_node16, (size_t)(NUM_16_PAGE * PAGE_SIZE) / sizeof(art_node16), sizeof(art_node16));
+    init_allocator(&na_node48, (size_t)(NUM_48_PAGE * PAGE_SIZE) / sizeof(art_node48), sizeof(art_node48));
+    init_allocator(&na_node256, (size_t)(NUM_256_PAGE * PAGE_SIZE) / sizeof(art_node256), sizeof(art_node256));
+    register_allocator(&na_node4);
+    register_allocator(&na_node16);
+    register_allocator(&na_node48);
+    register_allocator(&na_node256);
+#endif
     return 0;
 }
 
@@ -124,8 +155,12 @@ static void destroy_node(art_node *n)
         abort();
     }
 
-    // Free ourself on the way up
+// Free ourself on the way up
+#if CUS_ALLOC
+    free_node_auto((void *)n);
+#else
     free(n);
+#endif
 }
 
 /**
@@ -135,6 +170,12 @@ static void destroy_node(art_node *n)
 int art_tree_destroy(art_tree *t)
 {
     destroy_node(t->root);
+#if CUS_ALLOC
+    destroy_allocator(&na_node4);
+    destroy_allocator(&na_node16);
+    destroy_allocator(&na_node48);
+    destroy_allocator(&na_node256);
+#endif
     return 0;
 }
 
@@ -457,7 +498,11 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
         }
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
         add_child256(new_node, ref, c, child);
     }
 }
@@ -532,7 +577,11 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
         }
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
         add_child48(new_node, ref, c, child);
     }
 }
@@ -569,7 +618,11 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
                sizeof(unsigned char) * n->n.num_children);
         copy_header((art_node *)new_node, (art_node *)n);
         *ref = (art_node *)new_node;
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
         add_child16(new_node, ref, c, child);
     }
 }
@@ -774,7 +827,11 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
                 pos++;
             }
         }
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
     }
 }
 
@@ -802,7 +859,11 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
                 child++;
             }
         }
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
     }
 }
 
@@ -820,7 +881,11 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
         copy_header((art_node *)new_node, (art_node *)n);
         memcpy(new_node->keys, n->keys, 4);
         memcpy(new_node->children, n->children, 4 * sizeof(void *));
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
     }
 }
 
@@ -856,7 +921,11 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
             child->partial_len += n->n.partial_len + 1;
         }
         *ref = child;
+#if CUS_ALLOC
+        free_node_auto((void *)n);
+#else
         free(n);
+#endif
     }
 }
 

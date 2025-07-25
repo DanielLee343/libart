@@ -71,6 +71,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "queue": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "node_allocator.h": "c",
+        "stdint.h": "c"
     }
 }

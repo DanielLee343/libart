@@ -7,6 +7,7 @@ extern "C"
 {
 #endif
 
+#include "node_allocator.h"
 #define NODE4 1
 #define NODE16 2
 #define NODE48 3
@@ -25,6 +26,7 @@ extern "C"
 #endif
 #endif
 
+#define CUS_ALLOC 1
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
     /**
@@ -216,6 +218,14 @@ inline uint64_t art_size(art_tree *t)
      * @return 0 on success, or the return of the callback.
      */
     int art_iter_prefix(art_tree *t, const unsigned char *prefix, int prefix_len, art_callback cb, void *data);
+
+// additional symbols
+#if CUS_ALLOC
+    node_allocator na_node4;
+    node_allocator na_node16;
+    node_allocator na_node48;
+    node_allocator na_node256;
+#endif
 
 #ifdef __cplusplus
 }

@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     }
     // show_stat();
     // cleaning
-    // res = art_tree_destroy(&t);
+    res = art_tree_destroy(&t);
     numa_free(keys, (size_t)MAX_KEYS * AVG_KEY_LEN);
     numa_free(key_lens, sizeof(int) * MAX_KEYS);
 
