@@ -21,6 +21,9 @@ extern "C"
 #define NODE48 3
 #define NODE256 4
 
+#define TOP_K_SWAP 10000
+#define HOT_CACHE_LIMIT 10 * TOP_K_SWAP
+
 #define MAX_PREFIX_LEN 10
 #define LEAF_ALIGN 16
 #define ALIGN_UP(ptr, align) ((void *)(((uintptr_t)(ptr) + ((align) - 1)) & ~((align) - 1)))
@@ -56,7 +59,7 @@ extern "C"
 #ifndef CLFLUSH256
 #define CLFLUSH256 0
 #endif
-#define CNT 1             // bookkeeping # count for diff node types
+#define CNT 0             // bookkeeping # count for diff node types
 #define HIT_CNT_TOTAL 0   // bookkeeping # hit for diff node types
 #define DEPTH_INDI 1      // bookkeeping avg depth for individual node
 #define HIT_DIST 1        // for # hit distribution for diff node types
@@ -65,7 +68,7 @@ extern "C"
 #define STREAM_ACC_ADDR_256 0
 #define ONLINE 1         // online swapping
 #define SELF_REF 1       // adding self_ref
-#define LEAF_REF 0       // adding self_ref
+#define LEAF_REF 0       // adding self_ref to leaf, no need
 #define DFS 0            // do dfs to dump node and path hotness
 #define VIS 0            // visualize tree
 #define FIRST_TOUCH 0    // measuring first touch
@@ -97,7 +100,7 @@ extern "C"
 #endif
 #if ONLINE
         int idx_in_arr; // 4
-        bool in_local;  // 1 + 3 padding
+        bool in_local;  // 1 + 3 padding, no needed
 #endif
     }; // 32 + 4(online)
 
@@ -392,8 +395,8 @@ inline uint64_t art_size(art_tree *t)
     extern int *local_cnt[4];
     extern int *cxl_cnt[4];
     extern int *misplaced_cnt[4];
-    extern FILE *log_fd;
 #endif
+    extern FILE *log_fd;
 
 #if STREAM_ACC_ADDR || STREAM_ACC_ADDR_256
     FILE *acc_fd;
@@ -426,14 +429,31 @@ inline uint64_t art_size(art_tree *t)
                             size_t size,
                             art_node **node_hot_arr, int *hot_count,
                             art_node **node_cold_arr, int *cold_count);
+    // art_node *tiered_calloc(bool *local_full, struct memkind *local_kind, struct memkind *cxl_kind, size_t size, uint8_t type); // for lazy tree traversal
     static void sort_hotness(art_node **alloced_nodes, int alloced_cnt, bool descending);
-    static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr); // remove node from node array when freed
+    static void del_node_from_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr); // remove node from node array when freed
+    static void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count);
+    static void swap_hot_cold_nodes_bulk(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count);
+    // static void del_node_from_arr(art_node *n, struct memkind *kind);
     void sort_all_hotness();
-    void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count);
     void traverse_tree_populate_min_heap(art_node *n);
     void populate_min_heap(art_node *n);
     void print_min_heap_stat();
     void reset_min_heap();
+    void ins_node_to_set(art_node *n, uint8_t type);
+    void del_node_from_set(art_node *n, struct memkind *kind);
+    void get_top_k_and_swap();
+    void get_top_k_by_hit_cnt(art_node **out_arr, int *out_k, art_node **arr, int N, int k, bool ascending);
+
+    // for LRU
+    // extern art_node *LRU_node4[HOT_CACHE_LIMIT];
+    void hot_cache_record_access(art_node *n);
+    int hot_cache_snapshot(art_node **out_arr, int max_size);
+    void hot_cache_reset();
+
+    void reset_ring_buffer();
+    void sample_to_ring_buffer(art_node *n);
+    void get_ring_buffer_snapshot(art_node **out_arr, int *out_cnt);
 #endif
 #if SELF_REF
     void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);

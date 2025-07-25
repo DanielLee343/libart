@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
@@ -22,7 +23,6 @@
 #define NODE48_SIZE 768.65
 #define NODE256_SIZE 2561
 
-#define TOP_K_SWAP 1000
 #define NODE4_SENSI 0.21
 #define NODE16_SENSI 0.39
 #define NODE48_SENSI 0.96
@@ -142,12 +142,21 @@ static void clflush_range(void *addr, size_t size)
 }
 #endif
 static const int type_map[] = {0, 4, 16, 48, 256}; // index 0 unused
+static double elapsed_ms(struct timespec start, struct timespec end)
+{
+    return (end.tv_sec - start.tv_sec) * 1000.0 +
+           (end.tv_nsec - start.tv_nsec) / 1e6;
+}
 
 /**
  * Allocates a node of the given type,
  * initializes to zero and sets the type.
  */
+#if STATIC
 static art_node *alloc_node(uint8_t type, uint32_t depth)
+#else
+static art_node *alloc_node(uint8_t type)
+#endif
 {
     /* type ranging [1,4] but in matrix it's [0,3] so it's type - 1*/
     art_node *n;
@@ -159,6 +168,7 @@ static art_node *alloc_node(uint8_t type, uint32_t depth)
 // n = (art_node *)calloc(1, sizeof(art_node4)); // vanilla
 #if ONLINE
         n = (art_node *)tiered_calloc(&node4_local_full, node4_local_kind, node4_cxl_kind, sizeof(art_node4), node4_hot, &node4_local_alloc_cnt, node4_cold, &node4_cxl_alloc_cnt);
+        // n = (art_node *)tiered_calloc(&node4_local_full, node4_local_kind, node4_cxl_kind, sizeof(art_node4), type);
 #elif STATIC
         if (matrix[depth][type - 1])
         {
@@ -187,6 +197,7 @@ static art_node *alloc_node(uint8_t type, uint32_t depth)
     case NODE16:
 #if ONLINE
         n = (art_node *)tiered_calloc(&node16_local_full, node16_local_kind, node16_cxl_kind, sizeof(art_node16), node16_hot, &node16_local_alloc_cnt, node16_cold, &node16_cxl_alloc_cnt);
+        // n = (art_node *)tiered_calloc(&node16_local_full, node16_local_kind, node16_cxl_kind, sizeof(art_node16), type);
 #elif STATIC
         if (matrix[depth][type - 1])
         {
@@ -215,6 +226,7 @@ static art_node *alloc_node(uint8_t type, uint32_t depth)
     case NODE48:
 #if ONLINE
         n = (art_node *)tiered_calloc(&node48_local_full, node48_local_kind, node48_cxl_kind, sizeof(art_node48), node48_hot, &node48_local_alloc_cnt, node48_cold, &node48_cxl_alloc_cnt);
+        // n = (art_node *)tiered_calloc(&node48_local_full, node48_local_kind, node48_cxl_kind, sizeof(art_node48), type);
 #elif STATIC
         if (matrix[depth][type - 1])
         {
@@ -242,8 +254,8 @@ static art_node *alloc_node(uint8_t type, uint32_t depth)
         break;
     case NODE256:
 #if ONLINE
-        // n = (art_node *)memkind_calloc(node256_kind, 1, sizeof(art_node256));
         n = (art_node *)tiered_calloc(&node256_local_full, node256_local_kind, node256_cxl_kind, sizeof(art_node256), node256_hot, &node256_local_alloc_cnt, node256_cold, &node256_cxl_alloc_cnt);
+        // n = (art_node *)tiered_calloc(&node256_local_full, node256_local_kind, node256_cxl_kind, sizeof(art_node256), type);
 #elif STATIC
         if (matrix[depth][type - 1])
         {
@@ -493,8 +505,8 @@ int art_tree_init(art_tree *t, char *wl)
     }
     t->root = NULL;
     t->size = 0;
-#if ENABLE_PROFILE
     log_fd = fopen("/home/lyuze/workspace/libart/tests/out.log", "w");
+#if ENABLE_PROFILE
 #endif
 #if STATIC || ONLINE
     init_region(&node4_local, (size_t)PAGE_SIZE * NUM_4_PAGE_LC, 0, &node4_local_kind);
@@ -552,6 +564,8 @@ int art_tree_init(art_tree *t, char *wl)
     node48_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_48_PAGE) / NODE48_SIZE) * sizeof(void *));
     node256_hot = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE) / NODE256_SIZE) * sizeof(void *));
     node256_cold = (void *)calloc(1, (((size_t)PAGE_SIZE * NUM_256_PAGE) / NODE256_SIZE) * sizeof(void *));
+    // hot_cache_reset();
+    reset_ring_buffer();
 #endif
 #if STATIC
     load_static_metrics(wl);
@@ -615,7 +629,8 @@ static void destroy_node(art_node *n)
         node4_cnt--;
 #endif
 #if ONLINE
-        update_hot_cold_arr(n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
+        // del_node_from_arr(n, kind);
+        del_node_from_arr(n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
 #endif
         break;
 
@@ -640,7 +655,8 @@ static void destroy_node(art_node *n)
         node16_cnt--;
 #endif
 #if ONLINE
-        update_hot_cold_arr(n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
+        // del_node_from_arr(n, kind);
+        del_node_from_arr(n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
 #endif
         break;
 
@@ -668,7 +684,8 @@ static void destroy_node(art_node *n)
         node48_cnt--;
 #endif
 #if ONLINE
-        update_hot_cold_arr(n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
+        // del_node_from_arr(n, kind);
+        del_node_from_arr(n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
 #endif
         break;
 
@@ -694,7 +711,8 @@ static void destroy_node(art_node *n)
         node256_cnt--;
 #endif
 #if ONLINE
-        update_hot_cold_arr(n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
+        // del_node_from_arr(n, kind);
+        del_node_from_arr(n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
 #endif
         break;
 
@@ -755,6 +773,7 @@ int art_tree_destroy(art_tree *t)
     destroy_region(node256_base, (size_t)PAGE_SIZE * NUM_256_PAGE, node256_kind);
 #endif
     destroy_region(leaf_base, (size_t)PAGE_SIZE * NUM_LEAF_PAGE, leaf_kind); // leaf not consider tiering
+    fclose(log_fd);
 
 #if ONLINE
     free(node4_hot);
@@ -986,6 +1005,10 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len)
 #endif
 #if HIT_DIST
         n->hit_cnt++;
+#endif
+#if ONLINE
+        // hot_cache_record_access(n); // too much overhead
+        // sample_to_ring_buffer(n);
 #endif
         // #if STREAM_ACC_ADDR
         //         if (start_acc_streaming)
@@ -1243,7 +1266,11 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
     }
     else
     {
+#if STATIC
         art_node256 *new_node = (art_node256 *)alloc_node(NODE256, ((art_node *)n)->depth);
+#else
+        art_node256 *new_node = (art_node256 *)alloc_node(NODE256);
+#endif
         for (int i = 0; i < 256; i++)
         {
             if (n->keys[i])
@@ -1276,11 +1303,12 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
             node48_cxl_cnt--;
         }
 #endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
+#endif
 #if CNT
         node48_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
 #endif
         add_child256(new_node, ref, c, child);
     }
@@ -1344,7 +1372,11 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
     }
     else
     {
+#if STATIC
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48, ((art_node *)n)->depth);
+#else
+        art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
+#endif
 
         // Copy existing children
         memcpy(new_node->children, n->children,
@@ -1380,12 +1412,13 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
             node16_cxl_cnt--;
         }
 #endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
+#endif
 
 #if CNT
         node16_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
 #endif
         add_child48(new_node, ref, c, child);
     }
@@ -1430,7 +1463,11 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
     }
     else
     {
+#if STATIC
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16, ((art_node *)n)->depth);
+#else
+        art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+#endif
 
         // memcpy(new_node->children, n->children,
         //        sizeof(void *) * n->n.num_children);
@@ -1454,7 +1491,6 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
         *ref = (art_node *)new_node;
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
-        // printf("16: self_ref: %p, node: %p\n", new_node->n.self_ref, new_node);
 #if ENABLE_PROFILE
         if (kind == node4_local_kind)
         {
@@ -1465,11 +1501,12 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
             node4_cxl_cnt--;
         }
 #endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
+#endif
 #if CNT
         node4_cnt--;
-#endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
 #endif
         add_child16(new_node, ref, c, child);
     }
@@ -1557,8 +1594,12 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
             return old_val;
         }
 
-        /* Split the leaf into a new NODE4                            */
+/* Split the leaf into a new NODE4                            */
+#if STATIC
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4, logical_depth);
+#else
+        art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#endif
 #if DEPTH_INDI
         new_node->n.depth = logical_depth;
         // printf("aaaaa %s: %d\n", key, logical_depth + 1);
@@ -1644,8 +1685,12 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
             goto RECURSE_SEARCH;
         }
 
-        // Create a new node
+// Create a new node
+#if STATIC
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4, logical_depth);
+#else
+        art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#endif
 #if DEPTH_INDI
         new_node->n.depth = logical_depth;
         n->depth = logical_depth + 1;
@@ -1753,7 +1798,11 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
     // Resize to a node48 on underflow
     if (n->n.num_children == 37)
     {
+#if STATIC
         art_node48 *new_node = (art_node48 *)alloc_node(NODE48, ((art_node *)n)->depth);
+#else
+        art_node48 *new_node = (art_node48 *)alloc_node(NODE48);
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n, ref);
         int pos = 0;
@@ -1777,9 +1826,6 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
         }
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
-#endif
 #if ENABLE_PROFILE
         if (kind == node256_local_kind)
         {
@@ -1789,6 +1835,10 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
         {
             node256_cxl_cnt--;
         }
+#endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node256_local_alloc_cnt, &node256_cxl_alloc_cnt, node256_hot, node256_cold);
 #endif
 #if CNT
         node256_cnt--;
@@ -1805,7 +1855,11 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
 
     if (n->n.num_children == 12)
     {
+#if STATIC
         art_node16 *new_node = (art_node16 *)alloc_node(NODE16, ((art_node *)n)->depth);
+#else
+        art_node16 *new_node = (art_node16 *)alloc_node(NODE16);
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n, ref);
         int child = 0;
@@ -1831,9 +1885,6 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
 
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
-#endif
 #if ENABLE_PROFILE
         if (kind == node48_local_kind)
         {
@@ -1843,6 +1894,10 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
         {
             node48_cxl_cnt--;
         }
+#endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node48_local_alloc_cnt, &node48_cxl_alloc_cnt, node48_hot, node48_cold);
 #endif
 #if CNT
         node48_cnt--;
@@ -1866,7 +1921,11 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
     // Downgrade to node4 if number of children drops to 3
     if (n->n.num_children == 3)
     {
+#if STATIC
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4, ((art_node *)n)->depth);
+#else
+        art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
+#endif
         *ref = (art_node *)new_node;
         copy_header((art_node *)new_node, (art_node *)n, ref);
 
@@ -1887,9 +1946,6 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
             }
         }
 #endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
-#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if ENABLE_PROFILE
@@ -1901,6 +1957,10 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
         {
             node16_cxl_cnt--;
         }
+#endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node16_local_alloc_cnt, &node16_cxl_alloc_cnt, node16_hot, node16_cold);
 #endif
 #if CNT
         node16_cnt--;
@@ -1956,9 +2016,6 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
 #endif
         }
 #endif
-#if ONLINE
-        update_hot_cold_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
-#endif
         struct memkind *kind = memkind_detect_kind((void *)n);
         memkind_free(kind, n);
 #if ENABLE_PROFILE
@@ -1970,6 +2027,10 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
         {
             node4_cxl_cnt--;
         }
+#endif
+#if ONLINE
+        // del_node_from_arr((art_node *)n, kind);
+        del_node_from_arr((art_node *)n, &node4_local_alloc_cnt, &node4_cxl_alloc_cnt, node4_hot, node4_cold);
 #endif
 #if CNT
         node4_cnt--;
@@ -2859,6 +2920,7 @@ art_node *tiered_calloc(bool *local_full,
                         size_t size,
                         art_node **node_hot_arr, int *hot_count,
                         art_node **node_cold_arr, int *cold_count)
+// art_node *tiered_calloc(bool *local_full, struct memkind *local_kind, struct memkind *cxl_kind, size_t size, uint8_t type)
 {
     art_node *ptr = NULL;
 
@@ -2896,17 +2958,19 @@ art_node *tiered_calloc(bool *local_full,
     }
     return ptr;
 }
-static int sort_descending(const void *a, const void *b)
-{
-    const art_node *na = *(const art_node **)a;
-    const art_node *nb = *(const art_node **)b;
-    return nb->hit_cnt - na->hit_cnt;
-}
+
 static int sort_ascending(const void *a, const void *b)
 {
     const art_node *na = *(const art_node **)a;
     const art_node *nb = *(const art_node **)b;
     return na->hit_cnt - nb->hit_cnt;
+}
+
+static int sort_descending(const void *a, const void *b)
+{
+    const art_node *na = *(const art_node **)a;
+    const art_node *nb = *(const art_node **)b;
+    return nb->hit_cnt - na->hit_cnt;
 }
 
 static int sort_descending_r(const void *a, const void *b, void *arg)
@@ -3025,66 +3089,92 @@ void build_min_heap(art_node **arr, int N)
         heapify(arr, N, i);
 }
 
-// Partial sort top K
-void partial_sort_top_k(art_node **arr, int N, int K, bool ascending)
+static void swap_hot_cold_nodes_bulk(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count)
 {
-    if (!arr || N <= 0 || K <= 0)
+    if (hot_node_count == 0 || cold_node_count == 0)
         return;
-    if (K > N)
-        K = N;
 
-    build_min_heap(arr, N); // O(N)
-    if (ascending)
-        qsort(arr, K, sizeof(void *), sort_ascending); // O(K log K)
-    else
-        qsort(arr, K, sizeof(void *), sort_descending);
-}
+    size_t node_size = 0;
+    switch (hot_node_arr[0]->type)
+    {
+    case NODE4:
+        node_size = sizeof(art_node4);
+        break;
+    case NODE16:
+        node_size = sizeof(art_node16);
+        break;
+    case NODE48:
+        node_size = sizeof(art_node48);
+        break;
+    case NODE256:
+        node_size = sizeof(art_node256);
+        break;
+    default:
+        abort();
+    }
 
-void sort_all_hotness()
-{
-    // sort_hotness(node4_hot, node4_local_alloc_cnt, true); // hot array ascending
-    // sort_hotness(node4_cold, node4_cxl_alloc_cnt, false); // cold array descending
-    partial_sort_top_k(node4_hot, node4_local_alloc_cnt, TOP_K_SWAP, true);
-    partial_sort_top_k(node4_cold, node4_cxl_alloc_cnt, TOP_K_SWAP, false);
-    partial_sort_top_k(node16_hot, node16_local_alloc_cnt, TOP_K_SWAP, true);
-    partial_sort_top_k(node16_cold, node16_cxl_alloc_cnt, TOP_K_SWAP, false);
-    partial_sort_top_k(node48_hot, node48_local_alloc_cnt, TOP_K_SWAP, true);
-    partial_sort_top_k(node48_cold, node48_cxl_alloc_cnt, TOP_K_SWAP, false);
-    partial_sort_top_k(node256_hot, node256_local_alloc_cnt, TOP_K_SWAP, true);
-    partial_sort_top_k(node256_cold, node256_cxl_alloc_cnt, TOP_K_SWAP, false);
-}
-void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count)
-{
+    int max_possible_swaps = hot_node_count < cold_node_count ? hot_node_count : cold_node_count;
+    max_possible_swaps = max_possible_swaps < TOP_K_SWAP ? max_possible_swaps : TOP_K_SWAP;
+
+    // Preallocate a buffer to hold up to max_possible_swaps worth of node copies
+    void *tmp_buf = calloc(max_possible_swaps, node_size);
+    assert(tmp_buf);
+
     int cur_idx = 0;
-    while (cur_idx < hot_node_count && cur_idx < cold_node_count && cur_idx <= TOP_K_SWAP)
+    for (; cur_idx < max_possible_swaps; ++cur_idx)
     {
         art_node *hot_node = hot_node_arr[cur_idx];
         art_node *cold_node = cold_node_arr[cur_idx];
-        assert(hot_node->type == cold_node->type); // must match for safe swap
 
-        size_t node_size = 0;
-        switch (hot_node->type)
-        {
-        case NODE4:
-            node_size = sizeof(art_node4);
+        if (hot_node->hit_cnt >= cold_node->hit_cnt)
             break;
-        case NODE16:
-            node_size = sizeof(art_node16);
+
+        // Use the appropriate offset inside the tmp_buf
+        void *tmp = (char *)tmp_buf + cur_idx * node_size;
+
+        memcpy(tmp, hot_node, node_size);
+        memcpy(hot_node, cold_node, node_size);
+        memcpy(cold_node, tmp, node_size);
+
+        if (hot_node->self_ref)
+            *(hot_node->self_ref) = hot_node;
+        if (cold_node->self_ref)
+            *(cold_node->self_ref) = cold_node;
+    }
+
+    free(tmp_buf);
+    printf("successfully swapped %d\n", cur_idx);
+}
+static void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node **cold_node_arr, int cold_node_count)
+{
+    int cur_idx = 0;
+    size_t node_size = 0;
+    switch (hot_node_arr[0]->type)
+    {
+    case NODE4:
+        node_size = sizeof(art_node4);
+        break;
+    case NODE16:
+        node_size = sizeof(art_node16);
+        break;
+    case NODE48:
+        node_size = sizeof(art_node48);
+        break;
+    case NODE256:
+        node_size = sizeof(art_node256);
+        break;
+    default:
+        abort();
+    }
+    while (cur_idx < hot_node_count && cur_idx < cold_node_count && cur_idx < TOP_K_SWAP)
+    {
+        art_node *hot_node = hot_node_arr[cur_idx];
+        art_node *cold_node = cold_node_arr[cur_idx];
+        if (hot_node->hit_cnt >= cold_node->hit_cnt) // when local's cold nodes are not really colder than CXL's hot nodes, stop
             break;
-        case NODE48:
-            node_size = sizeof(art_node48);
-            break;
-        case NODE256:
-            node_size = sizeof(art_node256);
-            break;
-        default:
-            abort();
-        }
+
         void *tmp = calloc(1, node_size);
         assert(tmp);
-        // memcpy(&tmp, hot_node, sizeof(art_node));
-        // memcpy(hot_node, cold_node, sizeof(art_node));
-        // memcpy(cold_node, &tmp, sizeof(art_node));
         memcpy(tmp, hot_node, node_size);
         memcpy(hot_node, cold_node, node_size);
         memcpy(cold_node, tmp, node_size);
@@ -3099,7 +3189,102 @@ void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node *
     }
     printf("successfully swapped %d\n", cur_idx);
 }
+void partial_sort_top_k(art_node **arr, int N, int K, bool ascending)
+{
+    // struct timespec build_heap_start, build_heap_end, heapify_start, heapify_end, qsort_start, qsort_end;
+    // double build_heap_ms, heapify_ms, qsort_ms = 0;
+    if (!arr || N <= 0 || K <= 0)
+        return;
+    if (K > N)
+        K = N;
 
+    // Step 1: Make a copy of arr to heapify
+    // art_node **heap = malloc(sizeof(art_node *) * N);
+    // if (!heap)
+    //     return;
+
+    // for (int i = 0; i < N; ++i)
+    //     heap[i] = arr[i];
+
+    // clock_gettime(CLOCK_MONOTONIC, &build_heap_start);
+    // build_min_heap(heap, N); // heap is now a valid min-heap of size N
+    // clock_gettime(CLOCK_MONOTONIC, &build_heap_end);
+    // build_heap_ms = elapsed_ms(build_heap_start, build_heap_end);
+
+    // Step 2: Extract top K into a sorted array
+    // clock_gettime(CLOCK_MONOTONIC, &heapify_start);
+    // art_node *sorted[K];
+    // int heap_size = N;
+    // for (int i = 0; i < K; ++i)
+    // {
+    //     sorted[i] = heap[0]; // take min
+    //     heap[0] = heap[--heap_size];
+    //     heapify(heap, heap_size, 0);
+    // }
+    // clock_gettime(CLOCK_MONOTONIC, &heapify_end);
+    // heapify_ms = elapsed_ms(heapify_start, heapify_end);
+
+    // Step 3: Final sort
+    // clock_gettime(CLOCK_MONOTONIC, &qsort_start);
+    qsort(arr, N, sizeof(art_node *),
+          ascending ? sort_ascending : sort_descending);
+    // clock_gettime(CLOCK_MONOTONIC, &qsort_end);
+    // qsort_ms = elapsed_ms(qsort_start, qsort_end);
+
+    for (int i = 0; i < K; i++)
+    {
+        fprintf(log_fd, "%d\n", arr[i]->hit_cnt);
+    }
+    // printf("build_heap: %.3f, heapify: %.3f, qsort: %.3f\n", build_heap_ms / 1000, heapify_ms / 1000, qsort_ms / 1000);
+
+    // free(heap);
+}
+void sort_all_hotness()
+{
+    // partial_sort_top_k(node4_hot, node4_local_alloc_cnt, TOP_K_SWAP, true); // sort everything with high overhead, do not use
+    // partial_sort_top_k(node4_cold, node4_cxl_alloc_cnt, TOP_K_SWAP, false);
+    // partial_sort_top_k(node16_hot, node16_local_alloc_cnt, TOP_K_SWAP, true);
+    // partial_sort_top_k(node16_cold, node16_cxl_alloc_cnt, TOP_K_SWAP, false);
+    // partial_sort_top_k(node48_hot, node48_local_alloc_cnt, TOP_K_SWAP, true);
+    // partial_sort_top_k(node48_cold, node48_cxl_alloc_cnt, TOP_K_SWAP, false);
+    // partial_sort_top_k(node256_hot, node256_local_alloc_cnt, TOP_K_SWAP, true);
+    // partial_sort_top_k(node256_cold, node256_cxl_alloc_cnt, TOP_K_SWAP, false);
+
+    art_node *cold_node4_in_local[TOP_K_SWAP];
+    int cold_node4_cnt = 0;
+    get_top_k_by_hit_cnt(cold_node4_in_local, &cold_node4_cnt, node4_hot, node4_local_alloc_cnt, TOP_K_SWAP, true);
+    // for debugging
+    // for (int i = 0; i < cold_node4_cnt; i++)
+    // {
+    //     fprintf(log_fd, "%d\n", cold_node4_in_local[i]->hit_cnt);
+    // }
+    art_node *hot_node4_in_cxl[TOP_K_SWAP];
+    int hot_node4_cnt = 0;
+    get_top_k_by_hit_cnt(hot_node4_in_cxl, &hot_node4_cnt, node4_cold, node4_cxl_alloc_cnt, TOP_K_SWAP, false);
+    // swap_hot_cold_nodes(cold_node4_in_local, cold_node4_cnt, hot_node4_in_cxl, hot_node4_cnt);
+    swap_hot_cold_nodes_bulk(cold_node4_in_local, cold_node4_cnt, hot_node4_in_cxl, hot_node4_cnt);
+
+    art_node *cold_node16_in_local[TOP_K_SWAP];
+    int cold_node16_cnt = 0;
+    get_top_k_by_hit_cnt(cold_node16_in_local, &cold_node16_cnt, node16_hot, node16_local_alloc_cnt, TOP_K_SWAP, true);
+    art_node *hot_node16_in_cxl[TOP_K_SWAP];
+    int hot_node16_cnt = 0;
+    get_top_k_by_hit_cnt(hot_node16_in_cxl, &hot_node16_cnt, node16_cold, node16_cxl_alloc_cnt, TOP_K_SWAP, false);
+
+    art_node *cold_node48_in_local[TOP_K_SWAP];
+    int cold_node48_cnt = 0;
+    get_top_k_by_hit_cnt(cold_node48_in_local, &cold_node48_cnt, node48_hot, node48_local_alloc_cnt, TOP_K_SWAP, true);
+    art_node *hot_node48_in_cxl[TOP_K_SWAP];
+    int hot_node48_cnt = 0;
+    get_top_k_by_hit_cnt(hot_node48_in_cxl, &hot_node48_cnt, node48_cold, node48_cxl_alloc_cnt, TOP_K_SWAP, false);
+
+    art_node *cold_node256_in_local[TOP_K_SWAP];
+    int cold_node256_cnt = 0;
+    get_top_k_by_hit_cnt(cold_node256_in_local, &cold_node256_cnt, node256_hot, node256_local_alloc_cnt, TOP_K_SWAP, true);
+    art_node *hot_node256_in_cxl[TOP_K_SWAP];
+    int hot_node256_cnt = 0;
+    get_top_k_by_hit_cnt(hot_node256_in_cxl, &hot_node256_cnt, node256_cold, node256_cxl_alloc_cnt, TOP_K_SWAP, false);
+}
 // art_node * n: node to remove
 // int *local_alloc_cnt:  current number of nodes in local (hot) array
 // int *cxl_alloc_cnt: current number of nodes in cold array
@@ -3110,8 +3295,10 @@ void swap_hot_cold_nodes(art_node **hot_node_arr, int hot_node_count, art_node *
 // 	2.	Maintains compactness of the array by swapping the last element into the removed spot.
 // 	3.	Updates idx_in_arr on the moved element.
 // 	4.	Marks the removed node’s idx_in_arr as -1 (invalid).
-static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr)
+static void del_node_from_arr(art_node *n, int *local_alloc_cnt, int *cxl_alloc_cnt, art_node **hot_arr, art_node **cold_arr)
+// static void del_node_from_arr(art_node *n, struct memkind *kind)
 {
+    return;
     int idx = n->idx_in_arr;
     int last = 0;
     n->idx_in_arr = -1; // Mark as no longer tracked
@@ -3135,17 +3322,19 @@ static void update_hot_cold_arr(art_node *n, int *local_alloc_cnt, int *cxl_allo
         }
         (*cxl_alloc_cnt)--;
     }
+    // del_node_from_set(n, kind);
 }
 
+// don't use, too heavy and delaying tracing
 void traverse_tree_populate_min_heap(art_node *n)
 {
     if (!n || IS_LEAF(n))
         return;
     traverse_cnt++;
-    if (n->type != NODE4)
-    {
-        populate_min_heap(n);
-    }
+    // if (n->type != NODE4)
+    // {
+    //     populate_min_heap(n);
+    // }
 
     switch (n->type)
     {

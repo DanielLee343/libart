@@ -14,7 +14,7 @@ SHLINKFLAGS=-shared
 
 all:	src/libart.so
 
-src/libart.so:	src/libart.o src/visit_node.o src/common.o
+src/libart.so:	src/libart.o src/visit_node.o src/hot_cache.o src/common.o
 	$(LD) $(SHLINKFLAGS) -o $@ $^
 
 src/art.c:	src/art.h
@@ -28,6 +28,9 @@ src/common.o:	src/common.c src/art.h
 src/visit_node.o:	src/visit_node.cpp src/art.h
 	$(CXX) $(SHCXXFLAGS) -o $@ -c $<
 
+src/hot_cache.o:	src/hot_cache.cpp src/art.h
+	$(CXX) $(SHCXXFLAGS) -o $@ -c $<
+
 install:	src/libart.so
 	mkdir -p $(DESTDIR)$(LIBDIR)
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
@@ -37,4 +40,4 @@ install:	src/libart.so
 	chmod 444 $(DESTDIR)$(INCLUDEDIR)/art.h
 
 clean:
-	rm -rf src/libart.so src/libart.o src/visit_node.o src/common.o
+	rm -rf src/libart.so src/libart.o src/visit_node.o src/hot_cache.o src/common.o

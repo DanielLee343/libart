@@ -57,6 +57,7 @@ int node48_cxl_alloc_cnt = 0;
 int node256_local_alloc_cnt = 0;
 int node256_cxl_alloc_cnt = 0;
 int traverse_cnt = 0;
+// art_node *LRU_node4[HOT_CACHE_LIMIT]; // used for Node4 LRU
 #endif
 
 #if DEPTH_INDI
@@ -88,8 +89,8 @@ int node256_mis_placed = 0;
 int *local_cnt[4];
 int *cxl_cnt[4];
 int *misplaced_cnt[4];
-FILE *log_fd;
 #endif
+FILE *log_fd;
 
 #if STATIC
 int static_metrics_line_cnt = 0;

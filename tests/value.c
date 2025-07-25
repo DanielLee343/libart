@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     ops_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "ops: %.2f\n", ops_ms / 1000);
     {
-        node_cnt_stat();
+        // node_cnt_stat();
         // char level_stats_path[64];
         // snprintf(level_stats_path, sizeof(level_stats_path),
         //          "zipfian/level_stats_%s.txt", argv[1]);
@@ -363,7 +363,9 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             art_insert(tree, ops_ptr, ops_len, (void *)(uintptr_t)(i + 1));
         }
         // if (i == 0)
-        if (i % 1000000 == 0) // total 10 times
+        // if (i == 1000000)
+        // if (i % 12000000 == 0) // total 10 times
+        if (0)
         {
             // printf("streaming %d...\n", stream_counter);
             // snprintf(hit_cnt_path, sizeof(hit_cnt_path),
@@ -374,14 +376,15 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // fclose(hit_cnt_fd);
             // stream_counter++;
             clock_gettime(CLOCK_MONOTONIC, &t_start);
-            // sort_all_hotness();
-            traverse_tree_populate_min_heap(tree->root);
+            sort_all_hotness(); // old version, do not use
+            // get_top_k_and_swap();
+            // traverse_tree_populate_min_heap(tree->root);
             clock_gettime(CLOCK_MONOTONIC, &t_end);
             sort_ms = elapsed_ms(t_start, t_end);
             sort_time_total += sort_ms;
             fprintf(stdout, "sort: %.3f\n", sort_ms / 1000);
-            print_min_heap_stat();
-            reset_min_heap();
+            // print_min_heap_stat();
+            // reset_min_heap();
         }
 
         offset += ops_len;
