@@ -137,7 +137,8 @@ int main(int argc, char *argv[])
     printf("Loaded %d ops\n", num_ops);
 
     art_tree t;
-    int res = art_tree_init(&t, argv[1]);
+    // int res = art_tree_init(&t, argv[1]);
+    int res = art_tree_init(&t);
     { // for printing accessed addr
       // char acc_addr_path[64];
       // snprintf(acc_addr_path, sizeof(acc_addr_path),
@@ -212,7 +213,7 @@ int main(int argc, char *argv[])
         // fprintf(self_ref_fd, " }\n");
         // fclose(self_ref_fd);
     }
-    show_stat();
+    // show_stat();
     // cleaning
     // res = art_tree_destroy(&t);
     numa_free(keys, (size_t)MAX_KEYS * AVG_KEY_LEN);
@@ -376,7 +377,7 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // fclose(hit_cnt_fd);
             // stream_counter++;
             clock_gettime(CLOCK_MONOTONIC, &t_start);
-            sort_all_hotness(); // old version, do not use
+            // sort_all_hotness(); // old version, do not use
             // get_top_k_and_swap();
             // traverse_tree_populate_min_heap(tree->root);
             clock_gettime(CLOCK_MONOTONIC, &t_end);
