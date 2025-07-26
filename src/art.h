@@ -29,7 +29,8 @@ extern "C"
 
 #define CUS_ALLOC 1
 #define BOOKKEEP 1
-#define DEPTH 0 // bookkeep depth
+#define DEPTH 1    // bookkeep depth
+#define SELF_REF 1 // bookkeep pointer to parent's children slot
 
 #if BOOKKEEP
 #define PTR_MASK ((1ULL << 48) - 1)
@@ -309,6 +310,12 @@ inline uint64_t art_size(art_tree *t)
 #if DEPTH
     static void increment_subtree_depth(art_node *n);
     void collect_node_depths(art_node *n, int depth, FILE *fd);
+#endif
+
+#if SELF_REF
+    static inline void refresh_self_refs(art_node *n, int start, int end);
+    static void fix_children_self_ref(void **children, int count);
+    void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
 #endif
 
 #ifdef __cplusplus

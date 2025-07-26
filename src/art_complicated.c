@@ -1206,7 +1206,6 @@ static inline void refresh_self_refs(art_node *n, int start, int end)
 }
 static void fix_children_self_ref(void **children, int count)
 {
-#if SELF_REF
     for (int i = 0; i < count; ++i)
     {
         if (!IS_LEAF(children[i]))
@@ -1214,7 +1213,6 @@ static void fix_children_self_ref(void **children, int count)
             ((art_node *)children[i])->self_ref = (art_node **)&children[i];
         }
     }
-#endif
 }
 #endif
 static void copy_header(art_node *dest, art_node *src, art_node **ref)

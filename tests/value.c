@@ -206,11 +206,11 @@ int main(int argc, char *argv[])
       // fclose(acc_fd);
     }
     {
-        // FILE *self_ref_fd = fopen("self_ref.json", "w");
-        // fprintf(self_ref_fd, "{ \"tree\": ");
-        // dump_self_ref_json(self_ref_fd, t.root, NULL);
-        // fprintf(self_ref_fd, " }\n");
-        // fclose(self_ref_fd);
+        FILE *self_ref_fd = fopen("self_ref.json", "w");
+        fprintf(self_ref_fd, "{ \"tree\": ");
+        dump_self_ref_json(self_ref_fd, t.root, NULL);
+        fprintf(self_ref_fd, " }\n");
+        fclose(self_ref_fd);
     }
     // show_stat();
     // cleaning
