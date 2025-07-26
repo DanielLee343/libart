@@ -465,6 +465,9 @@ static void copy_header(art_node *dest, art_node *src)
 {
     dest->num_children = src->num_children;
     dest->partial_len = src->partial_len;
+#if DEPTH
+    set_depth(dest, get_depth(src));
+#endif
     memcpy(dest->partial, src->partial, min(MAX_PREFIX_LEN, src->partial_len));
 }
 
@@ -672,7 +675,7 @@ static int prefix_mismatch(const art_node *n, const unsigned char *key, int key_
     return idx;
 }
 
-static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *key, int key_len, void *value, int depth, int *old, int replace)
+static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *key, int key_len, void *value, int depth, int *old, int replace, uint16_t logical_depth)
 {
     // If we are at a NULL node, inject a leaf
     if (!n)
@@ -698,7 +701,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
 
         // New value, we must split the leaf into a node4
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
-
+#if DEPTH
+        set_depth(&new_node->n, logical_depth);
+#endif
         // Create a new leaf
         art_leaf *l2 = make_leaf(key, key_len, value);
 
@@ -728,6 +733,10 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         art_node4 *new_node = (art_node4 *)alloc_node(NODE4);
         *ref = (art_node *)new_node;
         new_node->n.partial_len = prefix_diff;
+#if DEPTH
+        set_depth(&new_node->n, logical_depth);
+        set_depth(n, logical_depth + 1);
+#endif
         memcpy(new_node->n.partial, n->partial, min(MAX_PREFIX_LEN, prefix_diff));
 
         // Adjust the prefix of the old node
@@ -750,6 +759,10 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         // Insert the new leaf
         art_leaf *l = make_leaf(key, key_len, value);
         add_child4(new_node, ref, key[depth + prefix_diff], SET_LEAF(l));
+#if DEPTH
+        decrement_depth(n);
+        increment_subtree_depth(n); // TODO: is it really necessary to maintain 100% accurate depth on the way?
+#endif
         return NULL;
     }
 
@@ -759,7 +772,7 @@ RECURSE_SEARCH:;
     art_node **child = find_child(n, key[depth]);
     if (child)
     {
-        return recursive_insert(*child, child, key, key_len, value, depth + 1, old, replace);
+        return recursive_insert(*child, child, key, key_len, value, depth + 1, old, replace, logical_depth + 1);
     }
 
     // No child, node goes within us
@@ -780,7 +793,7 @@ RECURSE_SEARCH:;
 void *art_insert(art_tree *t, const unsigned char *key, int key_len, void *value)
 {
     int old_val = 0;
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 1);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 1, 0);
     if (!old_val)
         t->size++;
     return old;
@@ -798,7 +811,7 @@ void *art_insert(art_tree *t, const unsigned char *key, int key_len, void *value
 void *art_insert_no_replace(art_tree *t, const unsigned char *key, int key_len, void *value)
 {
     int old_val = 0;
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 0);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val, 0, 0);
     if (!old_val)
         t->size++;
     return old;
@@ -921,6 +934,9 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
             child->partial_len += n->n.partial_len + 1;
         }
         *ref = child;
+#if DEPTH
+        set_depth(child, get_depth(&n->n));
+#endif
 #if CUS_ALLOC
         free_node_auto((void *)n);
 #else
@@ -1187,3 +1203,152 @@ int art_iter_prefix(art_tree *t, const unsigned char *key, int key_len, art_call
     }
     return 0;
 }
+
+#if DEPTH
+static void increment_subtree_depth(art_node *n)
+{
+    if (!n)
+        return;
+
+    if (IS_LEAF(n))
+    {
+        return;
+    }
+    // total_subtree_incremented_nodes++;
+    increment_depth(n);
+
+    switch (n->type)
+    {
+    case NODE4:
+    {
+        art_node4 *node = (art_node4 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+            increment_subtree_depth(node->children[i]);
+#if STATIC
+        try_copy_node(n);
+#endif
+        break;
+    }
+    case NODE16:
+    {
+        art_node16 *node = (art_node16 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+            increment_subtree_depth(node->children[i]);
+#if STATIC
+        try_copy_node(n);
+#endif
+        break;
+    }
+    case NODE48:
+    {
+        art_node48 *node = (art_node48 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->keys[i])
+            {
+                int idx = node->keys[i] - 1;
+                increment_subtree_depth(node->children[idx]);
+            }
+        }
+#if STATIC
+        try_copy_node(n);
+#endif
+        break;
+    }
+    case NODE256:
+    {
+        art_node256 *node = (art_node256 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->children[i])
+                increment_subtree_depth(node->children[i]);
+        }
+#if STATIC
+        try_copy_node(n);
+#endif
+        break;
+    }
+    }
+}
+
+void collect_node_depths(art_node *n, int depth, FILE *fd)
+{
+    if (!n)
+        return;
+    if (IS_LEAF(n))
+    {
+        //         fprintf(fd, "leaf: %d", depth);
+        //         art_leaf *leaf = LEAF_RAW(n);
+        // #if DEPTH_INDI
+        //         fprintf(fd, " %d", leaf->depth);
+        // #endif
+        //         fprintf(fd, " %s", leaf->key);
+        //         fprintf(fd, " \n");
+        return;
+    }
+    switch (n->type)
+    {
+    case NODE4:
+    {
+        fprintf(fd, "4: %p %d", n, depth);
+        fprintf(fd, " %d", get_depth(n));
+        fprintf(fd, " \n");
+        art_node4 *node = (art_node4 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+        {
+            collect_node_depths(node->children[i], depth + 1, fd);
+        }
+        break;
+    }
+
+    case NODE16:
+    {
+        fprintf(fd, "16: %p %d", n, depth);
+        fprintf(fd, " %d", get_depth(n));
+        fprintf(fd, " \n");
+        art_node16 *node = (art_node16 *)n;
+        for (int i = 0; i < node->n.num_children; i++)
+        {
+            collect_node_depths(node->children[i], depth + 1, fd);
+        }
+        break;
+    }
+
+    case NODE48:
+    {
+        fprintf(fd, "48: %p %d", n, depth);
+        fprintf(fd, " %d", get_depth(n));
+        fprintf(fd, " \n");
+        art_node48 *node = (art_node48 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            uint8_t idx = node->keys[i];
+            if (idx)
+            {
+                collect_node_depths(node->children[idx - 1], depth + 1, fd);
+            }
+        }
+        break;
+    }
+
+    case NODE256:
+    {
+        fprintf(fd, "256: %p %d", n, depth);
+        fprintf(fd, " %d", get_depth(n));
+        fprintf(fd, " \n");
+        art_node256 *node = (art_node256 *)n;
+        for (int i = 0; i < 256; i++)
+        {
+            if (node->children[i])
+            {
+                collect_node_depths(node->children[i], depth + 1, fd);
+            }
+        }
+        break;
+    }
+
+    default:
+        abort();
+    }
+}
+#endif

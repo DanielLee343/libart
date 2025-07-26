@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #ifndef ART_H
 #define ART_H
 
@@ -27,6 +28,16 @@ extern "C"
 #endif
 
 #define CUS_ALLOC 1
+#define BOOKKEEP 1
+#define DEPTH 0 // bookkeep depth
+
+#if BOOKKEEP
+#define PTR_MASK ((1ULL << 48) - 1)
+#define DEPTH_SHIFT 48
+#define DEPTH_MASK ((1ULL << 11) - 1)
+#define IS_LOCAL_SHIFT 59
+#define IS_LOCAL_MASK 1ULL
+#endif
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
     /**
@@ -39,6 +50,11 @@ extern "C"
         uint8_t type;
         uint8_t num_children;
         unsigned char partial[MAX_PREFIX_LEN];
+#if BOOKKEEP
+        // |63         60|59       |58         48|47          0|
+        // |  unused (4) |is_local |  depth(11)  |  ptr (48b)  |
+        uint64_t loc_depth_ptr; // compact field
+#endif
     } art_node;
 
     /**
@@ -225,6 +241,74 @@ inline uint64_t art_size(art_tree *t)
     node_allocator na_node16;
     node_allocator na_node48;
     node_allocator na_node256;
+#endif
+#if BOOKKEEP
+    // Set pointer (preserving depth and is_local)
+    static inline void set_ptr(art_node *n, void *ptr)
+    {
+        uint64_t ptr_val = (uint64_t)ptr & PTR_MASK;
+        n->loc_depth_ptr = (n->loc_depth_ptr & ~PTR_MASK) | ptr_val;
+    }
+
+    static inline void *get_ptr(art_node *n)
+    {
+        return (void *)(n->loc_depth_ptr & PTR_MASK);
+    }
+
+    static inline void set_depth(art_node *n, uint16_t depth)
+    {
+        n->loc_depth_ptr &= ~(DEPTH_MASK << DEPTH_SHIFT);
+        n->loc_depth_ptr |= ((uint64_t)(depth & DEPTH_MASK)) << DEPTH_SHIFT;
+    }
+
+    static inline void decrement_depth(art_node *n)
+    {
+        // uint64_t val = n->loc_depth_ptr;
+        // uint16_t depth = (val >> DEPTH_SHIFT) & DEPTH_MASK;
+
+        // // Prevent underflow
+        // if (depth > 0)
+        // {
+        //     depth -= 1;
+        // }
+
+        // // Clear existing depth bits and update with decremented value
+        // val &= ~(DEPTH_MASK << DEPTH_SHIFT);
+        // val |= ((uint64_t)depth) << DEPTH_SHIFT;
+
+        // n->loc_depth_ptr = val;
+        uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
+        d = (d - 1) & DEPTH_MASK; // wraps around to 2047 if d==0, avoids branching
+        n->loc_depth_ptr = (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
+    }
+
+    static inline void increment_depth(art_node *n)
+    {
+        uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
+        d = (d + 1) & DEPTH_MASK; // wraps around at 2048, respects 11-bit limit
+        n->loc_depth_ptr = (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
+    }
+
+    static inline uint16_t get_depth(art_node *n)
+    {
+        return (uint16_t)((n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK);
+    }
+
+    static inline void set_is_local(art_node *n, bool is_local)
+    {
+        n->loc_depth_ptr &= ~(IS_LOCAL_MASK << IS_LOCAL_SHIFT);
+        n->loc_depth_ptr |= ((uint64_t)is_local & IS_LOCAL_MASK) << IS_LOCAL_SHIFT;
+    }
+
+    static inline bool get_is_local(art_node *n)
+    {
+        return (bool)((n->loc_depth_ptr >> IS_LOCAL_SHIFT) & IS_LOCAL_MASK);
+    }
+#endif
+
+#if DEPTH
+    static void increment_subtree_depth(art_node *n);
+    void collect_node_depths(art_node *n, int depth, FILE *fd);
 #endif
 
 #ifdef __cplusplus

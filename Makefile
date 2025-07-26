@@ -3,7 +3,7 @@ LD=gcc
 PREFIX=/usr/local
 LIBDIR=$(PREFIX)/lib
 INCLUDEDIR=$(PREFIX)/include
-CFLAGS=-std=c99 -D_GNU_SOURCE -Wall -Werror -O3
+CFLAGS=-std=c99 -D_GNU_SOURCE -O3
 SHCFLAGS=$(CFLAGS) -fPIC
 SHLINKFLAGS=-shared
 

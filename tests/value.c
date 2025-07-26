@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
     // measure ops perf
     clock_gettime(CLOCK_MONOTONIC, &t_start);
-    measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
+    // measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
     // measure_ops_perf_threading(&t, ops, ops_lens, ops_types, num_ops);
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     ops_ms = elapsed_ms(t_start, t_end);
@@ -186,9 +186,8 @@ int main(int argc, char *argv[])
         // stream_node_hit_counts_individual(t.root, hit_cnt_fd);
         // fclose(hit_cnt_fd);
 
-        // node_depth_stats_t stat = {0};
         // FILE *depth_fd = fopen("depth_file.txt", "w"); // stream node type addr and size
-        // collect_node_depths(t.root, 0, &stat, depth_fd);
+        // collect_node_depths(t.root, 0, depth_fd);
         // print_avg_node_depths(&stat);
         // fclose(depth_fd);
         {
