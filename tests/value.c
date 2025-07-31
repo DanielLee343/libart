@@ -13,11 +13,23 @@
 #define MAX_OPS 120000001
 #define AVG_KEY_LEN 30
 #define MAX_LINE_LEN 55
-#define LOCAL_MASK 0
-#define VAL_LOC_MASK 0
+#define DATA_MEM_MASK 1
 #define MAX_DEPTH 35
 // #define NUM_THREADS 1
+#define PER_Q_PERF_OPS 0
+#define PER_Q_PERF_POP 1
+
 int num_thread = 1;
+#if PER_Q_PERF_OPS || PER_Q_PERF_POP
+float *latencies_ops;
+float *latencies_pop;
+static inline int compare_float(const void *a, const void *b)
+{
+    float fa = *(const float *)a;
+    float fb = *(const float *)b;
+    return (fa > fb) - (fa < fb);
+}
+#endif
 
 typedef enum
 {
@@ -41,7 +53,7 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
 void measure_ops_perf_threading(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types, int num_ops);
 int print_key_callback(void *data, const unsigned char *key, unsigned int key_len, void *value);
 
-static double elapsed_ms(struct timespec start, struct timespec end)
+static inline double elapsed_ms(struct timespec start, struct timespec end)
 {
     return (end.tv_sec - start.tv_sec) * 1000.0 +
            (end.tv_nsec - start.tv_nsec) / 1e6;
@@ -88,14 +100,14 @@ int main(int argc, char *argv[])
         perror("fopen input file failed");
         exit(EXIT_FAILURE);
     }
-    char *keys = (char *)numa_alloc_onnode((size_t)MAX_KEYS * AVG_KEY_LEN, LOCAL_MASK);
+    char *keys = (char *)numa_alloc_onnode((size_t)MAX_KEYS * AVG_KEY_LEN, DATA_MEM_MASK);
     if (!keys)
     {
         perror("numa_alloc_onnode for flat keys failed");
         exit(EXIT_FAILURE);
     }
 
-    int *key_lens = (int *)numa_alloc_onnode(sizeof(int) * MAX_KEYS, LOCAL_MASK);
+    int *key_lens = (int *)numa_alloc_onnode(sizeof(int) * MAX_KEYS, DATA_MEM_MASK);
     if (!key_lens)
     {
         perror("malloc key_lens failed");
@@ -106,6 +118,12 @@ int main(int argc, char *argv[])
     fclose(f_input);
 
     printf("Loaded %d keys\n", num_keys);
+#if PER_Q_PERF_OPS
+    latencies_ops = malloc(sizeof(float) * num_ops);
+#endif
+#if PER_Q_PERF_POP
+    latencies_pop = malloc(sizeof(float) * num_keys);
+#endif
 
     // loading ops file
     FILE *f_ops = fopen(ops_path, "r");
@@ -114,15 +132,15 @@ int main(int argc, char *argv[])
         perror("fopen input file failed");
         exit(EXIT_FAILURE);
     }
-    char *ops = (char *)numa_alloc_onnode((size_t)MAX_OPS * AVG_KEY_LEN, LOCAL_MASK);
+    char *ops = (char *)numa_alloc_onnode((size_t)MAX_OPS * AVG_KEY_LEN, DATA_MEM_MASK);
     if (!ops)
     {
         perror("numa_alloc_onnode ops failed");
         exit(EXIT_FAILURE);
     }
 
-    int *ops_lens = (int *)numa_alloc_onnode(MAX_OPS * sizeof(int), LOCAL_MASK);
-    op_t *ops_types = (op_t *)numa_alloc_onnode(MAX_OPS * sizeof(op_t), LOCAL_MASK);
+    int *ops_lens = (int *)numa_alloc_onnode(MAX_OPS * sizeof(int), DATA_MEM_MASK);
+    op_t *ops_types = (op_t *)numa_alloc_onnode(MAX_OPS * sizeof(op_t), DATA_MEM_MASK);
 
     if (!ops_lens || !ops_types)
     {
@@ -153,6 +171,7 @@ int main(int argc, char *argv[])
     insert_ms = elapsed_ms(t_start, t_end);
     fprintf(stdout, "insert: %.2f\n", insert_ms / 1000);
     fflush(stdout);
+
     {
         // reset_node_hit_cnt_total(); // resets for global metadata
         // cooling_node_hit_cnt_individual(t.root, 0); // resets for individual
@@ -206,11 +225,11 @@ int main(int argc, char *argv[])
       // fclose(acc_fd);
     }
     {
-        FILE *self_ref_fd = fopen("self_ref.json", "w");
-        fprintf(self_ref_fd, "{ \"tree\": ");
-        dump_self_ref_json(self_ref_fd, t.root, NULL);
-        fprintf(self_ref_fd, " }\n");
-        fclose(self_ref_fd);
+        // FILE *self_ref_fd = fopen("self_ref.json", "w");
+        // fprintf(self_ref_fd, "{ \"tree\": ");
+        // dump_self_ref_json(self_ref_fd, t.root, NULL);
+        // fprintf(self_ref_fd, " }\n");
+        // fclose(self_ref_fd);
     }
     // show_stat();
     // cleaning
@@ -221,6 +240,20 @@ int main(int argc, char *argv[])
     numa_free(ops, (size_t)MAX_OPS * AVG_KEY_LEN);
     numa_free(ops_lens, MAX_OPS * sizeof(int));
     numa_free(ops_types, MAX_OPS * sizeof(op_t));
+#if PER_Q_PERF_OPS
+    qsort(latencies_ops, num_ops, sizeof(float), compare_float);
+    float median = latencies_ops[num_ops / 2];
+    float p99 = latencies_ops[(int)(num_ops * 0.99)];
+    printf("median: %.3f, p99: %.3f\n", median, p99);
+    free(latencies_ops);
+#endif
+#if PER_Q_PERF_POP
+    qsort(latencies_pop, num_keys, sizeof(float), compare_float);
+    float median = latencies_pop[num_keys / 2];
+    float p99 = latencies_pop[(int)(num_keys * 0.99)];
+    printf("median: %.3f, p99: %.3f\n", median, p99);
+    free(latencies_pop);
+#endif
 
     return 0;
 }
@@ -318,13 +351,26 @@ int preload_ops(char *ops, int *ops_len, op_t *ops_types, FILE *f)
 void populate_art(art_tree *tree, char *keys, int *key_lens, int num_keys)
 {
     size_t offset = 0;
+#if PER_Q_PERF_POP
+    struct timespec per_q_start, per_q_end;
+    double per_q_lat;
+#endif
 
     for (int i = 0; i < num_keys; i++)
     {
+#if PER_Q_PERF_POP
+        clock_gettime(CLOCK_MONOTONIC, &per_q_start);
+#endif
         const unsigned char *key_ptr = (const unsigned char *)(keys + offset);
         int key_len = key_lens[i];
         art_insert(tree, key_ptr, key_len, (void *)(uintptr_t)(i + 1));
 
+#if PER_Q_PERF_POP
+        clock_gettime(CLOCK_MONOTONIC, &per_q_end);
+        double per_q_lat = (per_q_end.tv_sec - per_q_start.tv_sec) * 1e6 +
+                           (per_q_end.tv_nsec - per_q_start.tv_nsec) / 1e3;
+        latencies_pop[i] = per_q_lat;
+#endif
         offset += key_lens[i];
         // if (i % 1200000 == 0)
         // {
@@ -339,6 +385,10 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
     uintptr_t total_val = 0;
     char hit_cnt_path[128];
     int stream_counter = 0;
+#if PER_Q_PERF_OPS
+    struct timespec per_q_start, per_q_end;
+    double per_q_lat;
+#endif
     struct timespec t_start, t_end;
     double sort_ms = 0;
     double sort_time_total = 0.0;
@@ -348,6 +398,9 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
         int ops_len = ops_lens[i];
         int ops_type = ops_types[i];
         void *value = (void *)(uintptr_t)i;
+#if PER_Q_PERF_OPS
+        clock_gettime(CLOCK_MONOTONIC, &per_q_start);
+#endif
         if (ops_type == OP_READ)
         {
             void *val = art_search(tree, ops_ptr, ops_len);
@@ -386,7 +439,12 @@ void measure_ops_perf(art_tree *tree, char *ops, int *ops_lens, op_t *ops_types,
             // print_min_heap_stat();
             // reset_min_heap();
         }
-
+#if PER_Q_PERF_OPS
+        clock_gettime(CLOCK_MONOTONIC, &per_q_end);
+        double per_q_lat = (per_q_end.tv_sec - per_q_start.tv_sec) * 1e6 +
+                           (per_q_end.tv_nsec - per_q_start.tv_nsec) / 1e3;
+        latencies_ops[i] = per_q_lat;
+#endif
         offset += ops_len;
     }
     printf("# found: %d, total_val: %ld, sort_time_total: %.3f\n", none_null_cnt, total_val, sort_time_total / 1000);

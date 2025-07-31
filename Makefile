@@ -13,7 +13,11 @@ INCLUDES=$(SRC_DIR)/art.h $(SRC_DIR)/node_allocator.h
 
 all: $(SRC_DIR)/libart.so
 
-$(SRC_DIR)/libart.so: $(OBJ_DIR)/libart.o $(OBJ_DIR)/node_allocator.o
+
+src/common.o:	src/common.c src/art.h
+	$(CC) $(SHCFLAGS) -o $@ -c $<
+
+$(SRC_DIR)/libart.so: $(OBJ_DIR)/libart.o $(OBJ_DIR)/node_allocator.o src/common.o
 	$(LD) $(SHLINKFLAGS) -o $@ $^
 
 $(OBJ_DIR)/libart.o: $(SRC_DIR)/art.c $(INCLUDES)

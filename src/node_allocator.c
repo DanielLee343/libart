@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <numaif.h>
 static node_allocator *all_allocators[MAX_ALLOCATORS];
 static size_t num_allocators = 0;
 void register_allocator(node_allocator *na)
@@ -21,7 +22,7 @@ void register_allocator(node_allocator *na)
         abort();
     }
 }
-void init_allocator(node_allocator *allocator, size_t capacity, size_t node_size)
+void init_allocator(node_allocator *allocator, size_t capacity, size_t node_size, bool in_cxl)
 {
     allocator->node_size = node_size;
     allocator->capacity = capacity;
@@ -33,6 +34,13 @@ void init_allocator(node_allocator *allocator, size_t capacity, size_t node_size
     if (base == MAP_FAILED)
     {
         perror("mmap");
+        exit(1);
+    }
+    unsigned long node_mask = 1UL << (in_cxl ? CXL_MASK : LOCAL_MASK);
+    long mbind_ret = mbind(base, region_size, MPOL_BIND, &node_mask, sizeof(node_mask) * 8, 0);
+    if (mbind_ret != 0)
+    {
+        perror("mbind");
         exit(1);
     }
     allocator->base_addr = base;

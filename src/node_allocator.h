@@ -3,12 +3,15 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_ALLOCATORS 8
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+#define CXL_MASK 1
+#define LOCAL_MASK 0
     typedef struct
     {
         void *base_addr;    // Base address of mmap region
@@ -26,7 +29,7 @@ extern "C"
      * Returns 0 on success, -1 on failure.
      */
     void register_allocator(node_allocator *na);
-    void init_allocator(node_allocator *na, size_t capacity, size_t node_size);
+    void init_allocator(node_allocator *na, size_t capacity, size_t node_size, bool in_cxl);
 
     /**
      * Allocates a zeroed node within the reserved region.

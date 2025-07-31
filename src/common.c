@@ -96,3 +96,11 @@ FILE *log_fd;
 int static_metrics_line_cnt = 0;
 int **matrix = NULL;
 #endif
+
+#if HIT_CNT_TOTAL
+unsigned long node4_hit_cnt = 0;
+unsigned long node16_hit_cnt = 0;
+unsigned long node48_hit_cnt = 0;
+unsigned long node256_hit_cnt = 0;
+unsigned long leaf_hit_cnt = 0;
+#endif

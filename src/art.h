@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <math.h>
 #ifndef ART_H
 #define ART_H
 
@@ -28,9 +30,12 @@ extern "C"
 #endif
 
 #define CUS_ALLOC 1
+#define CNT 0
+#define HIT_CNT_TOTAL 0
 #define BOOKKEEP 1
-#define DEPTH 1    // bookkeep depth
-#define SELF_REF 1 // bookkeep pointer to parent's children slot
+#define HIT_CNT 0  // bookkeep hit_cnt
+#define DEPTH 0    // bookkeep depth
+#define SELF_REF 0 // bookkeep pointer to parent's children slot
 
 #if BOOKKEEP
 #define PTR_MASK ((1ULL << 48) - 1)
@@ -38,6 +43,24 @@ extern "C"
 #define DEPTH_MASK ((1ULL << 11) - 1)
 #define IS_LOCAL_SHIFT 59
 #define IS_LOCAL_MASK 1ULL
+#endif
+#if CNT
+    extern unsigned long node4_cnt;
+    extern unsigned long node16_cnt;
+    extern unsigned long node48_cnt;
+    extern unsigned long node256_cnt;
+    extern unsigned long leaf_cnt;
+    void node_cnt_stat();
+#endif
+
+#if HIT_CNT_TOTAL
+    extern unsigned long node4_hit_cnt;
+    extern unsigned long node16_hit_cnt;
+    extern unsigned long node48_hit_cnt;
+    extern unsigned long node256_hit_cnt;
+    extern unsigned long leaf_hit_cnt;
+    void reset_node_hit_cnt_total();
+    void node_hit_cnt_total();
 #endif
     typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
@@ -54,7 +77,10 @@ extern "C"
 #if BOOKKEEP
         // |63         60|59       |58         48|47          0|
         // |  unused (4) |is_local |  depth(11)  |  ptr (48b)  |
-        uint64_t loc_depth_ptr; // compact field
+        uint64_t loc_depth_ptr; // 8
+#endif
+#if HIT_CNT
+        uint16_t hit_cnt; // 2
 #endif
     } art_node;
 
@@ -243,18 +269,20 @@ inline uint64_t art_size(art_tree *t)
     node_allocator na_node48;
     node_allocator na_node256;
 #endif
-#if BOOKKEEP
     // Set pointer (preserving depth and is_local)
     static inline void set_ptr(art_node *n, void *ptr)
     {
         uint64_t ptr_val = (uint64_t)ptr & PTR_MASK;
         n->loc_depth_ptr = (n->loc_depth_ptr & ~PTR_MASK) | ptr_val;
+        // n->self_ref = ptr;
     }
 
     static inline void *get_ptr(art_node *n)
     {
         return (void *)(n->loc_depth_ptr & PTR_MASK);
+        // return n->self_ref;
     }
+#if BOOKKEEP
 
     static inline void set_depth(art_node *n, uint16_t depth)
     {

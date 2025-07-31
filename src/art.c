@@ -40,12 +40,18 @@ static art_node *alloc_node(uint8_t type)
 #else
         n = (art_node *)calloc(1, sizeof(art_node4));
 #endif
+#if CNT
+        node4_cnt++;
+#endif
         break;
     case NODE16:
 #if CUS_ALLOC
         n = (art_node *)alloc_node_cus(&na_node16);
 #else
         n = (art_node *)calloc(1, sizeof(art_node16));
+#endif
+#if CNT
+        node16_cnt++;
 #endif
         break;
     case NODE48:
@@ -54,12 +60,18 @@ static art_node *alloc_node(uint8_t type)
 #else
         n = (art_node *)calloc(1, sizeof(art_node48));
 #endif
+#if CNT
+        node48_cnt++;
+#endif
         break;
     case NODE256:
 #if CUS_ALLOC
         n = (art_node *)alloc_node_cus(&na_node256);
 #else
         n = (art_node *)calloc(1, sizeof(art_node256));
+#endif
+#if CNT
+        node256_cnt++;
 #endif
         break;
     default:
@@ -78,10 +90,10 @@ int art_tree_init(art_tree *t)
     t->root = NULL;
     t->size = 0;
 #if CUS_ALLOC
-    init_allocator(&na_node4, (size_t)(NUM_4_PAGE * PAGE_SIZE) / sizeof(art_node4), sizeof(art_node4));
-    init_allocator(&na_node16, (size_t)(NUM_16_PAGE * PAGE_SIZE) / sizeof(art_node16), sizeof(art_node16));
-    init_allocator(&na_node48, (size_t)(NUM_48_PAGE * PAGE_SIZE) / sizeof(art_node48), sizeof(art_node48));
-    init_allocator(&na_node256, (size_t)(NUM_256_PAGE * PAGE_SIZE) / sizeof(art_node256), sizeof(art_node256));
+    init_allocator(&na_node4, (size_t)(NUM_4_PAGE * PAGE_SIZE) / sizeof(art_node4), sizeof(art_node4), 1);
+    init_allocator(&na_node16, (size_t)(NUM_16_PAGE * PAGE_SIZE) / sizeof(art_node16), sizeof(art_node16), 1);
+    init_allocator(&na_node48, (size_t)(NUM_48_PAGE * PAGE_SIZE) / sizeof(art_node48), sizeof(art_node48), 1);
+    init_allocator(&na_node256, (size_t)(NUM_256_PAGE * PAGE_SIZE) / sizeof(art_node256), sizeof(art_node256), 1);
     register_allocator(&na_node4);
     register_allocator(&na_node16);
     register_allocator(&na_node48);
@@ -101,6 +113,9 @@ static void destroy_node(art_node *n)
     if (IS_LEAF(n))
     {
         free(LEAF_RAW(n));
+#if CNT
+        leaf_cnt--;
+#endif
         return;
     }
 
@@ -121,6 +136,9 @@ static void destroy_node(art_node *n)
         {
             destroy_node(p.p1->children[i]);
         }
+#if CNT
+        node4_cnt--;
+#endif
         break;
 
     case NODE16:
@@ -129,6 +147,9 @@ static void destroy_node(art_node *n)
         {
             destroy_node(p.p2->children[i]);
         }
+#if CNT
+        node16_cnt--;
+#endif
         break;
 
     case NODE48:
@@ -140,6 +161,9 @@ static void destroy_node(art_node *n)
                 continue;
             destroy_node(p.p3->children[idx - 1]);
         }
+#if CNT
+        node48_cnt--;
+#endif
         break;
 
     case NODE256:
@@ -149,6 +173,9 @@ static void destroy_node(art_node *n)
             if (p.p4->children[i])
                 destroy_node(p.p4->children[i]);
         }
+#if CNT
+        node256_cnt--;
+#endif
         break;
 
     default:
@@ -334,6 +361,9 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len)
         // Might be a leaf
         if (IS_LEAF(n))
         {
+#if HIT_CNT_TOTAL
+            leaf_hit_cnt++;
+#endif
             n = (art_node *)LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((art_leaf *)n, key, key_len, depth))
@@ -342,6 +372,26 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len)
             }
             return NULL;
         }
+#if HIT_CNT
+        n->hit_cnt++;
+#endif
+#if HIT_CNT_TOTAL
+        switch (n->type)
+        {
+        case NODE4:
+            node4_hit_cnt++;
+            break;
+        case NODE16:
+            node16_hit_cnt++;
+            break;
+        case NODE48:
+            node48_hit_cnt++;
+            break;
+        case NODE256:
+            node256_hit_cnt++;
+            break;
+        }
+#endif
 
         // Bail if the prefix does not match
         if (n->partial_len)
@@ -446,6 +496,9 @@ static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value)
     l->value = value;
     l->key_len = key_len;
     memcpy(l->key, key, key_len);
+#if CNT
+    leaf_cnt++;
+#endif
     return l;
 }
 
@@ -522,6 +575,9 @@ static void add_child48(art_node48 *n, art_node **ref, unsigned char c, void *ch
         free_node_auto((void *)n);
 #else
         free(n);
+#endif
+#if CNT
+        node48_cnt--;
 #endif
         add_child256(new_node, ref, c, child);
     }
@@ -617,6 +673,9 @@ static void add_child16(art_node16 *n, art_node **ref, unsigned char c, void *ch
 #else
         free(n);
 #endif
+#if CNT
+        node16_cnt--;
+#endif
         add_child48(new_node, ref, c, child);
     }
 }
@@ -671,12 +730,16 @@ static void add_child4(art_node4 *n, art_node **ref, unsigned char c, void *chil
             }
 #endif
         }
+        new_node->n.num_children = n->n.num_children;
         copy_header((art_node *)new_node, (art_node *)n, (void *)ref);
         *ref = (art_node *)new_node;
 #if CUS_ALLOC
         free_node_auto((void *)n);
 #else
         free(n);
+#endif
+#if CNT
+        node4_cnt--;
 #endif
         add_child16(new_node, ref, c, child);
     }
@@ -739,6 +802,9 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
     // If we are at a leaf, we need to replace it with a node
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         art_leaf *l = LEAF_RAW(n);
 
         // Check if we are updating an existing value
@@ -766,13 +832,32 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         // Add the leafs to the new node4
         *ref = (art_node *)new_node;
 #if SELF_REF
-        set_ptr((art_node *)new_node, (void *)ref);
+        set_ptr(&new_node->n, (void *)ref);
 #endif
         add_child4(new_node, ref, l->key[depth + longest_prefix], SET_LEAF(l));
         add_child4(new_node, ref, l2->key[depth + longest_prefix], SET_LEAF(l2));
+#if HIT_CNT_TOTAL
+        switch (n->type)
+        {
+        case NODE4:
+            node4_hit_cnt++;
+            break;
+        case NODE16:
+            node16_hit_cnt++;
+            break;
+        case NODE48:
+            node48_hit_cnt++;
+            break;
+        case NODE256:
+            node256_hit_cnt++;
+            break;
+        }
+#endif
         return NULL;
     }
-
+#if HIT_CNT
+    n->hit_cnt++;
+#endif
     // Check if given node has a prefix
     if (n->partial_len)
     {
@@ -794,7 +879,7 @@ static void *recursive_insert(art_node *n, art_node **ref, const unsigned char *
         set_depth(n, logical_depth + 1);
 #endif
 #if SELF_REF
-        set_ptr((art_node *)new_node, (void *)ref);
+        set_ptr(&new_node->n, (void *)ref);
 #endif
         // Adjust the prefix of the old node
         if (n->partial_len <= MAX_PREFIX_LEN)
@@ -892,11 +977,12 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
         {
             if (n->children[i])
             {
-                new_node->children[pos] = n->children[i];
+                art_node *child = n->children[i];
+                new_node->children[pos] = child;
                 new_node->keys[i] = pos + 1;
 #if SELF_REF
-                if (!IS_LEAF(n->children[i]))
-                    set_ptr(n->children[i], &new_node->children[pos]);
+                if (!IS_LEAF(child))
+                    set_ptr(child, &new_node->children[pos]);
 #endif
                 pos++;
             }
@@ -905,6 +991,9 @@ static void remove_child256(art_node256 *n, art_node **ref, unsigned char c)
         free_node_auto((void *)n);
 #else
         free(n);
+#endif
+#if CNT
+        node256_cnt--;
 #endif
     }
 }
@@ -942,6 +1031,9 @@ static void remove_child48(art_node48 *n, art_node **ref, unsigned char c)
 #else
         free(n);
 #endif
+#if CNT
+        node48_cnt--;
+#endif
     }
 }
 
@@ -974,6 +1066,9 @@ static void remove_child16(art_node16 *n, art_node **ref, art_node **l)
         free_node_auto((void *)n);
 #else
         free(n);
+#endif
+#if CNT
+        node16_cnt--;
 #endif
     }
 }
@@ -1025,6 +1120,9 @@ static void remove_child4(art_node4 *n, art_node **ref, art_node **l)
 #else
         free(n);
 #endif
+#if CNT
+        node4_cnt--;
+#endif
     }
 }
 
@@ -1054,6 +1152,9 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref, const unsigned ch
     // Handle hitting a leaf node
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         art_leaf *l = LEAF_RAW(n);
         if (!leaf_matches(l, key, key_len, depth))
         {
@@ -1062,7 +1163,26 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref, const unsigned ch
         }
         return NULL;
     }
-
+#if HIT_CNT
+    n->hit_cnt++;
+#endif
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
     // Bail if the prefix does not match
     if (n->partial_len)
     {
@@ -1114,6 +1234,9 @@ void *art_delete(art_tree *t, const unsigned char *key, int key_len)
         t->size--;
         void *old = l->value;
         free(l);
+#if CNT
+        leaf_cnt--;
+#endif
         return old;
     }
     return NULL;
@@ -1127,10 +1250,32 @@ static int recursive_iter(art_node *n, art_callback cb, void *data)
         return 0;
     if (IS_LEAF(n))
     {
+#if HIT_CNT_TOTAL
+        leaf_hit_cnt++;
+#endif
         art_leaf *l = LEAF_RAW(n);
         return cb(data, (const unsigned char *)l->key, l->key_len, l->value);
     }
-
+#if HIT_CNT_TOTAL
+    switch (n->type)
+    {
+    case NODE4:
+        node4_hit_cnt++;
+        break;
+    case NODE16:
+        node16_hit_cnt++;
+        break;
+    case NODE48:
+        node48_hit_cnt++;
+        break;
+    case NODE256:
+        node256_hit_cnt++;
+        break;
+    }
+#endif
+#if HIT_CNT
+    n->hit_cnt++;
+#endif
     int idx, res;
     switch (n->type)
     {
@@ -1574,5 +1719,40 @@ void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr)
 
     fprintf(out, "\n  ]\n");
     fprintf(out, "}");
+}
+#endif
+#if HIT_CNT_TOTAL
+void node_hit_cnt_total()
+{
+    printf("------- Node Hit Count Summry -------\n");
+    printf("Node4: %lu\n", node4_hit_cnt);
+    printf("Node16: %lu\n", node16_hit_cnt);
+    printf("Node48: %lu\n", node48_hit_cnt);
+    printf("Node256: %lu\n", node256_hit_cnt);
+    printf("Leaf: %lu\n", leaf_hit_cnt);
+}
+void reset_node_hit_cnt_total()
+{
+    printf("------- Resetting node hit count total -------\n");
+    node4_hit_cnt = node16_hit_cnt = node48_hit_cnt = node256_hit_cnt = leaf_hit_cnt = 0;
+}
+#endif
+
+#if CNT
+void node_cnt_stat()
+{
+    printf("------- Node Count Summry -------\n");
+    float node4_mb = node4_cnt * sizeof(art_node4) / (1024 * 1024);
+    float node16_mb = node16_cnt * sizeof(art_node16) / (1024 * 1024);
+    float node48_mb = node48_cnt * sizeof(art_node48) / (1024 * 1024);
+    float node256_mb = node256_cnt * sizeof(art_node256) / (1024 * 1024);
+    float total_mb = node4_mb + node16_mb + node48_mb + node256_mb;
+
+    printf("Node4: %lu, %.2f MB, %.2f pages\n", node4_cnt, node4_mb, ceil(node4_mb * 256));
+    printf("Node16: %lu, %.2f MB, %.2f pages\n", node16_cnt, node16_mb, ceil(node16_mb * 256));
+    printf("Node48: %lu, %.2f MB, %.2f pages\n", node48_cnt, node48_mb, ceil(node48_mb * 256));
+    printf("Node256: %lu, %.2f MB, %.2f pages\n", node256_cnt, node256_mb, ceil(node256_mb * 256));
+    printf("total: %.2f MB\n", total_mb);
+    printf("Leaf: %lu\n", leaf_cnt);
 }
 #endif
