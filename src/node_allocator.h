@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_ALLOCATORS 8
+#define MAX_ALLOCATORS 15
 #ifdef __cplusplus
 extern "C"
 {

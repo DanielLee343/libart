@@ -1,13 +1,12 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #ifndef ART_H
 #define ART_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include "node_allocator.h"
@@ -29,13 +28,15 @@ extern "C"
 #endif
 #endif
 
-#define CUS_ALLOC 1
-#define CNT 0
-#define HIT_CNT_TOTAL 0
-#define BOOKKEEP 1
-#define HIT_CNT 0  // bookkeep hit_cnt
-#define DEPTH 0    // bookkeep depth
-#define SELF_REF 0 // bookkeep pointer to parent's children slot
+#define CUS_ALLOC 1         // custom allocator for inner nodes
+#define LEAF_CUS_ALLOC 1    // custom allocator for leaf nodes
+#define LEAF_DISTRIBUTION 0 // show leaf_lens distribution
+#define CNT 0               // bookkeep node count
+#define HIT_CNT_TOTAL 0     // bookkeep hit count
+#define BOOKKEEP 1          // add metadata for inner nodes
+#define HIT_CNT 0           // bookkeep hit_cnt
+#define DEPTH 0             // bookkeep depth
+#define SELF_REF 0          // bookkeep pointer to parent's children slot
 
 #if BOOKKEEP
 #define PTR_MASK ((1ULL << 48) - 1)
@@ -45,110 +46,104 @@ extern "C"
 #define IS_LOCAL_MASK 1ULL
 #endif
 #if CNT
-    extern unsigned long node4_cnt;
-    extern unsigned long node16_cnt;
-    extern unsigned long node48_cnt;
-    extern unsigned long node256_cnt;
-    extern unsigned long leaf_cnt;
-    void node_cnt_stat();
+extern unsigned long node4_cnt;
+extern unsigned long node16_cnt;
+extern unsigned long node48_cnt;
+extern unsigned long node256_cnt;
+extern unsigned long leaf_cnt;
+void node_cnt_stat();
 #endif
 
 #if HIT_CNT_TOTAL
-    extern unsigned long node4_hit_cnt;
-    extern unsigned long node16_hit_cnt;
-    extern unsigned long node48_hit_cnt;
-    extern unsigned long node256_hit_cnt;
-    extern unsigned long leaf_hit_cnt;
-    void reset_node_hit_cnt_total();
-    void node_hit_cnt_total();
+extern unsigned long node4_hit_cnt;
+extern unsigned long node16_hit_cnt;
+extern unsigned long node48_hit_cnt;
+extern unsigned long node256_hit_cnt;
+extern unsigned long leaf_hit_cnt;
+void reset_node_hit_cnt_total();
+void node_hit_cnt_total();
 #endif
-    typedef int (*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
+typedef int (*art_callback)(void *data, const unsigned char *key,
+                            uint32_t key_len, void *value);
 
-    /**
-     * This struct is included as part
-     * of all the various node sizes
-     */
-    typedef struct
-    {
-        uint32_t partial_len;
-        uint8_t type;
-        uint8_t num_children;
-        unsigned char partial[MAX_PREFIX_LEN];
+/**
+ * This struct is included as part
+ * of all the various node sizes
+ */
+typedef struct {
+  uint32_t partial_len;
+  uint8_t type;
+  uint8_t num_children;
+  unsigned char partial[MAX_PREFIX_LEN];
 #if BOOKKEEP
-        // |63         60|59       |58         48|47          0|
-        // |  unused (4) |is_local |  depth(11)  |  ptr (48b)  |
-        uint64_t loc_depth_ptr; // 8
+  // |63         60|59       |58         48|47          0|
+  // |  unused (4) |is_local |  depth(11)  |  ptr (48b)  |
+  uint64_t loc_depth_ptr; // 8
 #endif
 #if HIT_CNT
-        uint16_t hit_cnt; // 2
+  uint16_t hit_cnt; // 2
 #endif
-    } art_node;
+} art_node;
 
-    /**
-     * Small node with only 4 children
-     */
-    typedef struct
-    {
-        art_node n;
-        unsigned char keys[4];
-        art_node *children[4];
-    } art_node4;
+/**
+ * Small node with only 4 children
+ */
+typedef struct {
+  art_node n;
+  unsigned char keys[4];
+  art_node *children[4];
+} art_node4;
 
-    /**
-     * Node with 16 children
-     */
-    typedef struct
-    {
-        art_node n;
-        unsigned char keys[16];
-        art_node *children[16];
-    } art_node16;
+/**
+ * Node with 16 children
+ */
+typedef struct {
+  art_node n;
+  unsigned char keys[16];
+  art_node *children[16];
+} art_node16;
 
-    /**
-     * Node with 48 children, but
-     * a full 256 byte field.
-     */
-    typedef struct
-    {
-        art_node n;
-        unsigned char keys[256];
-        art_node *children[48];
-    } art_node48;
+/**
+ * Node with 48 children, but
+ * a full 256 byte field.
+ */
+typedef struct {
+  art_node n;
+  unsigned char keys[256];
+  art_node *children[48];
+} art_node48;
 
-    /**
-     * Full node with 256 children
-     */
-    typedef struct
-    {
-        art_node n;
-        art_node *children[256];
-    } art_node256;
+/**
+ * Full node with 256 children
+ */
+typedef struct {
+  art_node n;
+  art_node *children[256];
+} art_node256;
 
-    /**
-     * Represents a leaf. These are
-     * of arbitrary size, as they include the key.
-     */
-    typedef struct
-    {
-        void *value;
-        uint32_t key_len;
-        unsigned char key[];
-    } art_leaf;
+/**
+ * Represents a leaf. These are
+ * of arbitrary size, as they include the key.
+ */
+typedef struct {
+  void *value;
+  uint32_t key_len;
+  unsigned char key[];
+} art_leaf;
 
-    /**
-     * Main struct, points to root.
-     */
-    typedef struct
-    {
-        art_node *root;
-        uint64_t size;
-    } art_tree;
+/**
+ * Main struct, points to root.
+ */
+typedef struct {
+  art_node *root;
+  uint64_t size;
+} art_tree;
 
-    /**
-     * Initializes an ART tree
-     * @return 0 on success.
-     */
-    int art_tree_init(art_tree *t);
+/**
+ * Initializes an ART tree
+ * @return 0 on success.
+ */
+int art_tree_init(art_tree *t);
 
 /**
  * DEPRECATED
@@ -157,11 +152,11 @@ extern "C"
  */
 #define init_art_tree(...) art_tree_init(__VA_ARGS__)
 
-    /**
-     * Destroys an ART tree
-     * @return 0 on success.
-     */
-    int art_tree_destroy(art_tree *t);
+/**
+ * Destroys an ART tree
+ * @return 0 on success.
+ */
+int art_tree_destroy(art_tree *t);
 
 /**
  * DEPRECATED
@@ -176,174 +171,182 @@ extern "C"
 #ifdef BROKEN_GCC_C99_INLINE
 #define art_size(t) ((t)->size)
 #else
-inline uint64_t art_size(art_tree *t)
-{
-    return t->size;
-}
+inline uint64_t art_size(art_tree *t) { return t->size; }
 #endif
 
-    /**
-     * inserts a new value into the art tree
-     * @arg t the tree
-     * @arg key the key
-     * @arg key_len the length of the key
-     * @arg value opaque value.
-     * @return null if the item was newly inserted, otherwise
-     * the old value pointer is returned.
-     */
-    void *art_insert(art_tree *t, const unsigned char *key, int key_len, void *value);
+/**
+ * inserts a new value into the art tree
+ * @arg t the tree
+ * @arg key the key
+ * @arg key_len the length of the key
+ * @arg value opaque value.
+ * @return null if the item was newly inserted, otherwise
+ * the old value pointer is returned.
+ */
+void *art_insert(art_tree *t, const unsigned char *key, int key_len,
+                 void *value);
 
-    /**
-     * inserts a new value into the art tree (not replacing)
-     * @arg t the tree
-     * @arg key the key
-     * @arg key_len the length of the key
-     * @arg value opaque value.
-     * @return null if the item was newly inserted, otherwise
-     * the old value pointer is returned.
-     */
-    void *art_insert_no_replace(art_tree *t, const unsigned char *key, int key_len, void *value);
+/**
+ * inserts a new value into the art tree (not replacing)
+ * @arg t the tree
+ * @arg key the key
+ * @arg key_len the length of the key
+ * @arg value opaque value.
+ * @return null if the item was newly inserted, otherwise
+ * the old value pointer is returned.
+ */
+void *art_insert_no_replace(art_tree *t, const unsigned char *key, int key_len,
+                            void *value);
 
-    /**
-     * Deletes a value from the ART tree
-     * @arg t The tree
-     * @arg key The key
-     * @arg key_len The length of the key
-     * @return NULL if the item was not found, otherwise
-     * the value pointer is returned.
-     */
-    void *art_delete(art_tree *t, const unsigned char *key, int key_len);
+/**
+ * Deletes a value from the ART tree
+ * @arg t The tree
+ * @arg key The key
+ * @arg key_len The length of the key
+ * @return NULL if the item was not found, otherwise
+ * the value pointer is returned.
+ */
+void *art_delete(art_tree *t, const unsigned char *key, int key_len);
 
-    /**
-     * Searches for a value in the ART tree
-     * @arg t The tree
-     * @arg key The key
-     * @arg key_len The length of the key
-     * @return NULL if the item was not found, otherwise
-     * the value pointer is returned.
-     */
-    void *art_search(const art_tree *t, const unsigned char *key, int key_len);
+/**
+ * Searches for a value in the ART tree
+ * @arg t The tree
+ * @arg key The key
+ * @arg key_len The length of the key
+ * @return NULL if the item was not found, otherwise
+ * the value pointer is returned.
+ */
+void *art_search(const art_tree *t, const unsigned char *key, int key_len);
 
-    /**
-     * Returns the minimum valued leaf
-     * @return The minimum leaf or NULL
-     */
-    art_leaf *art_minimum(art_tree *t);
+/**
+ * Returns the minimum valued leaf
+ * @return The minimum leaf or NULL
+ */
+art_leaf *art_minimum(art_tree *t);
 
-    /**
-     * Returns the maximum valued leaf
-     * @return The maximum leaf or NULL
-     */
-    art_leaf *art_maximum(art_tree *t);
+/**
+ * Returns the maximum valued leaf
+ * @return The maximum leaf or NULL
+ */
+art_leaf *art_maximum(art_tree *t);
 
-    /**
-     * Iterates through the entries pairs in the map,
-     * invoking a callback for each. The call back gets a
-     * key, value for each and returns an integer stop value.
-     * If the callback returns non-zero, then the iteration stops.
-     * @arg t The tree to iterate over
-     * @arg cb The callback function to invoke
-     * @arg data Opaque handle passed to the callback
-     * @return 0 on success, or the return of the callback.
-     */
-    int art_iter(art_tree *t, art_callback cb, void *data);
+/**
+ * Iterates through the entries pairs in the map,
+ * invoking a callback for each. The call back gets a
+ * key, value for each and returns an integer stop value.
+ * If the callback returns non-zero, then the iteration stops.
+ * @arg t The tree to iterate over
+ * @arg cb The callback function to invoke
+ * @arg data Opaque handle passed to the callback
+ * @return 0 on success, or the return of the callback.
+ */
+int art_iter(art_tree *t, art_callback cb, void *data);
 
-    /**
-     * Iterates through the entries pairs in the map,
-     * invoking a callback for each that matches a given prefix.
-     * The call back gets a key, value for each and returns an integer stop value.
-     * If the callback returns non-zero, then the iteration stops.
-     * @arg t The tree to iterate over
-     * @arg prefix The prefix of keys to read
-     * @arg prefix_len The length of the prefix
-     * @arg cb The callback function to invoke
-     * @arg data Opaque handle passed to the callback
-     * @return 0 on success, or the return of the callback.
-     */
-    int art_iter_prefix(art_tree *t, const unsigned char *prefix, int prefix_len, art_callback cb, void *data);
+/**
+ * Iterates through the entries pairs in the map,
+ * invoking a callback for each that matches a given prefix.
+ * The call back gets a key, value for each and returns an integer stop value.
+ * If the callback returns non-zero, then the iteration stops.
+ * @arg t The tree to iterate over
+ * @arg prefix The prefix of keys to read
+ * @arg prefix_len The length of the prefix
+ * @arg cb The callback function to invoke
+ * @arg data Opaque handle passed to the callback
+ * @return 0 on success, or the return of the callback.
+ */
+int art_iter_prefix(art_tree *t, const unsigned char *prefix, int prefix_len,
+                    art_callback cb, void *data);
 
 // additional symbols
 #if CUS_ALLOC
-    node_allocator na_node4;
-    node_allocator na_node16;
-    node_allocator na_node48;
-    node_allocator na_node256;
+node_allocator na_node4;
+node_allocator na_node16;
+node_allocator na_node48;
+node_allocator na_node256;
 #endif
-    // Set pointer (preserving depth and is_local)
-    static inline void set_ptr(art_node *n, void *ptr)
-    {
-        uint64_t ptr_val = (uint64_t)ptr & PTR_MASK;
-        n->loc_depth_ptr = (n->loc_depth_ptr & ~PTR_MASK) | ptr_val;
-        // n->self_ref = ptr;
-    }
+#if LEAF_CUS_ALLOC
+#define LEAF_SIZE_CLASSES 9
+node_allocator na_leaf_16; // 9-16 bytes
+node_allocator na_leaf_24; // 17-24 bytes
+node_allocator na_leaf_32; // 25-32 bytes
+node_allocator na_leaf_40; // 33-40 bytes
+node_allocator na_leaf_48; // 41-48 bytes
+node_allocator na_leaf_54; // 49-54 bytes
+node_allocator na_leaf_60; // 55-60 bytes
+node_allocator na_leaf_66; // 61-66 bytes
+static int get_leaf_size_class(size_t total_size);
+static node_allocator *get_leaf_allocator(int size_class);
+static node_allocator *find_leaf_allocator(art_leaf *leaf);
+#endif
+// Set pointer (preserving depth and is_local)
+static inline void set_ptr(art_node *n, void *ptr) {
+  uint64_t ptr_val = (uint64_t)ptr & PTR_MASK;
+  n->loc_depth_ptr = (n->loc_depth_ptr & ~PTR_MASK) | ptr_val;
+  // n->self_ref = ptr;
+}
 
-    static inline void *get_ptr(art_node *n)
-    {
-        return (void *)(n->loc_depth_ptr & PTR_MASK);
-        // return n->self_ref;
-    }
+static inline void *get_ptr(art_node *n) {
+  return (void *)(n->loc_depth_ptr & PTR_MASK);
+  // return n->self_ref;
+}
 #if BOOKKEEP
 
-    static inline void set_depth(art_node *n, uint16_t depth)
-    {
-        n->loc_depth_ptr &= ~(DEPTH_MASK << DEPTH_SHIFT);
-        n->loc_depth_ptr |= ((uint64_t)(depth & DEPTH_MASK)) << DEPTH_SHIFT;
-    }
+static inline void set_depth(art_node *n, uint16_t depth) {
+  n->loc_depth_ptr &= ~(DEPTH_MASK << DEPTH_SHIFT);
+  n->loc_depth_ptr |= ((uint64_t)(depth & DEPTH_MASK)) << DEPTH_SHIFT;
+}
 
-    static inline void decrement_depth(art_node *n)
-    {
-        // uint64_t val = n->loc_depth_ptr;
-        // uint16_t depth = (val >> DEPTH_SHIFT) & DEPTH_MASK;
+static inline void decrement_depth(art_node *n) {
+  // uint64_t val = n->loc_depth_ptr;
+  // uint16_t depth = (val >> DEPTH_SHIFT) & DEPTH_MASK;
 
-        // // Prevent underflow
-        // if (depth > 0)
-        // {
-        //     depth -= 1;
-        // }
+  // // Prevent underflow
+  // if (depth > 0)
+  // {
+  //     depth -= 1;
+  // }
 
-        // // Clear existing depth bits and update with decremented value
-        // val &= ~(DEPTH_MASK << DEPTH_SHIFT);
-        // val |= ((uint64_t)depth) << DEPTH_SHIFT;
+  // // Clear existing depth bits and update with decremented value
+  // val &= ~(DEPTH_MASK << DEPTH_SHIFT);
+  // val |= ((uint64_t)depth) << DEPTH_SHIFT;
 
-        // n->loc_depth_ptr = val;
-        uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
-        d = (d - 1) & DEPTH_MASK; // wraps around to 2047 if d==0, avoids branching
-        n->loc_depth_ptr = (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
-    }
+  // n->loc_depth_ptr = val;
+  uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
+  d = (d - 1) & DEPTH_MASK; // wraps around to 2047 if d==0, avoids branching
+  n->loc_depth_ptr =
+      (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
+}
 
-    static inline void increment_depth(art_node *n)
-    {
-        uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
-        d = (d + 1) & DEPTH_MASK; // wraps around at 2048, respects 11-bit limit
-        n->loc_depth_ptr = (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
-    }
+static inline void increment_depth(art_node *n) {
+  uint64_t d = (n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK;
+  d = (d + 1) & DEPTH_MASK; // wraps around at 2048, respects 11-bit limit
+  n->loc_depth_ptr =
+      (n->loc_depth_ptr & ~(DEPTH_MASK << DEPTH_SHIFT)) | (d << DEPTH_SHIFT);
+}
 
-    static inline uint16_t get_depth(art_node *n)
-    {
-        return (uint16_t)((n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK);
-    }
+static inline uint16_t get_depth(art_node *n) {
+  return (uint16_t)((n->loc_depth_ptr >> DEPTH_SHIFT) & DEPTH_MASK);
+}
 
-    static inline void set_is_local(art_node *n, bool is_local)
-    {
-        n->loc_depth_ptr &= ~(IS_LOCAL_MASK << IS_LOCAL_SHIFT);
-        n->loc_depth_ptr |= ((uint64_t)is_local & IS_LOCAL_MASK) << IS_LOCAL_SHIFT;
-    }
+static inline void set_is_local(art_node *n, bool is_local) {
+  n->loc_depth_ptr &= ~(IS_LOCAL_MASK << IS_LOCAL_SHIFT);
+  n->loc_depth_ptr |= ((uint64_t)is_local & IS_LOCAL_MASK) << IS_LOCAL_SHIFT;
+}
 
-    static inline bool get_is_local(art_node *n)
-    {
-        return (bool)((n->loc_depth_ptr >> IS_LOCAL_SHIFT) & IS_LOCAL_MASK);
-    }
+static inline bool get_is_local(art_node *n) {
+  return (bool)((n->loc_depth_ptr >> IS_LOCAL_SHIFT) & IS_LOCAL_MASK);
+}
 #endif
 
 #if DEPTH
-    static void increment_subtree_depth(art_node *n);
-    void collect_node_depths(art_node *n, int depth, FILE *fd);
+static void increment_subtree_depth(art_node *n);
+void collect_node_depths(art_node *n, int depth, FILE *fd);
 #endif
 
 #if SELF_REF
-    static inline void refresh_self_refs(art_node *n, int start, int end);
-    static void fix_children_self_ref(void **children, int count);
-    void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
+static inline void refresh_self_refs(art_node *n, int start, int end);
+static void fix_children_self_ref(void **children, int count);
+void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
 #endif
 
 #ifdef __cplusplus
