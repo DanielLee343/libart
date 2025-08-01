@@ -1,7 +1,9 @@
 #include <math.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #ifndef ART_H
 #define ART_H
 
@@ -38,6 +40,7 @@ extern "C" {
 #define DEPTH 0             // bookkeep depth
 #define SELF_REF 0          // bookkeep pointer to parent's children slot
 #define LEAF_CENTRIC 1      // leaf-centric sampling, extra field
+#define THREAD 1            // concurrency control with versioning
 
 #if BOOKKEEP
 #define PTR_MASK ((1ULL << 48) - 1)
@@ -83,6 +86,9 @@ typedef struct {
 #endif
 #if HIT_CNT
   uint16_t hit_cnt; // 2
+#endif
+#if THREAD
+  uint64_t version; // 8
 #endif
 } art_node;
 
@@ -134,14 +140,79 @@ typedef struct {
 #endif
   unsigned char key[];
 } art_leaf;
-
 /**
  * Main struct, points to root.
  */
 typedef struct {
   art_node *root;
   uint64_t size;
+#if THREAD
+  pthread_rwlock_t tree_lock;
+#endif
 } art_tree;
+#if THREAD
+typedef struct {
+  pthread_rwlock_t node_lock;   // Lock for the node itself
+  pthread_rwlock_t parent_lock; // Lock for the parent node
+  art_node *parent;             // Pointer to parent node
+} art_node_lock_t;
+
+// Lock management structure
+typedef struct lock_entry {
+  art_node *node;
+  art_node_lock_t lock_info;
+  struct lock_entry *next;
+} lock_entry_t;
+
+// Lock table structure
+typedef struct {
+  lock_entry_t **buckets;
+  size_t size;
+  pthread_mutex_t table_lock;
+} lock_table_t;
+
+// Function declarations for lock management
+lock_table_t *create_lock_table(size_t size);
+void destroy_lock_table(lock_table_t *table);
+art_node_lock_t *get_node_lock_info(art_node *node, lock_table_t *table);
+void cleanup_node_locks(art_node *node, lock_table_t *table);
+
+// Background worker management
+typedef struct {
+  pthread_t worker_thread;
+  pthread_mutex_t worker_mutex;
+  pthread_cond_t worker_cond;
+  bool should_stop;
+  art_tree *tree;
+  lock_table_t *lock_table;
+} background_worker_t;
+
+// Background worker functions
+background_worker_t *start_background_worker(art_tree *tree,
+                                             lock_table_t *lock_table);
+void stop_background_worker(background_worker_t *worker);
+void *background_worker_thread(void *arg);
+
+// Sampling function declaration
+void sampling(art_tree *tree, lock_table_t *lock_table);
+
+// Migration function declaration
+int migrate_node(art_tree *t, art_node *node, art_node *parent);
+
+// Thread-safe versions of operations
+void *art_insert_thread_safe(art_tree *t, const unsigned char *key, int key_len,
+                             void *value);
+void *art_delete_thread_safe(art_tree *t, const unsigned char *key,
+                             int key_len);
+void *art_search_thread_safe(const art_tree *t, const unsigned char *key,
+                             int key_len);
+void *art_search_optimistic(const art_tree *t, const unsigned char *key,
+                            int key_len);
+
+// Global variables (extern declarations)
+extern lock_table_t *global_lock_table;
+extern background_worker_t *global_worker;
+#endif
 
 /**
  * Initializes an ART tree

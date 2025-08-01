@@ -1,5 +1,6 @@
 #include "art.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,14 +38,14 @@
 // #define NUM_LEAF_LARGE 10
 
 // email_workloadbigger_tail w/ extra field
-// #define NUM_LEAF_16 10
-// #define NUM_LEAF_24 10
-// #define NUM_LEAF_32 600
-// #define NUM_LEAF_40 2181000
-// #define NUM_LEAF_48 8745000
-// #define NUM_LEAF_54 1004000
-// #define NUM_LEAF_60 140000
-// #define NUM_LEAF_LARGE 10
+#define NUM_LEAF_16 10
+#define NUM_LEAF_24 10
+#define NUM_LEAF_32 600
+#define NUM_LEAF_40 2181000
+#define NUM_LEAF_48 8745000
+#define NUM_LEAF_54 1004000
+#define NUM_LEAF_60 140000
+#define NUM_LEAF_LARGE 10
 
 // email_workloadc_ext_10
 // #define NUM_LEAF_16 10
@@ -57,14 +58,14 @@
 // #define NUM_LEAF_LARGE 639000
 
 // email_workloadc_ext_10 w/ extra field
-#define NUM_LEAF_16 10
-#define NUM_LEAF_24 10
-#define NUM_LEAF_32 3000
-#define NUM_LEAF_40 38000
-#define NUM_LEAF_48 20849000
-#define NUM_LEAF_54 49924000
-#define NUM_LEAF_60 37125000
-#define NUM_LEAF_LARGE 11631000
+// #define NUM_LEAF_16 10
+// #define NUM_LEAF_24 10
+// #define NUM_LEAF_32 3000
+// #define NUM_LEAF_40 38000
+// #define NUM_LEAF_48 20849000
+// #define NUM_LEAF_54 49924000
+// #define NUM_LEAF_60 37125000
+// #define NUM_LEAF_LARGE 11631000
 #endif // LEAF_CUS_ALLOC
 
 #if LEAF_DISTRIBUTION
@@ -78,6 +79,7 @@ int num_leaf_60;
 int num_leaf_large;
 int max_leaf_size;
 #endif
+
 /**
  * Allocates a node of the given type,
  * initializes to zero and sets the type.
@@ -129,6 +131,9 @@ static art_node *alloc_node(uint8_t type) {
     abort();
   }
   n->type = type;
+#if THREAD
+  n->version = 0; // Initialize version
+#endif
   return n;
 }
 
@@ -174,6 +179,24 @@ int art_tree_init(art_tree *t) {
   register_allocator(&na_leaf_54);
   register_allocator(&na_leaf_60);
   register_allocator(&na_leaf_large);
+#endif
+#if THREAD
+  pthread_rwlock_init(&t->tree_lock, NULL);
+
+  // Create global lock table
+  global_lock_table = create_lock_table(1024); // Adjust size as needed
+  if (!global_lock_table) {
+    pthread_rwlock_destroy(&t->tree_lock);
+    return -1;
+  }
+
+  // Start background worker
+  global_worker = start_background_worker(t, global_lock_table);
+  if (!global_worker) {
+    destroy_lock_table(global_lock_table);
+    pthread_rwlock_destroy(&t->tree_lock);
+    return -1;
+  }
 #endif
 
   return 0;
@@ -301,6 +324,21 @@ int art_tree_destroy(art_tree *t) {
   printf("num_leaf_60: %d\n", num_leaf_60);
   printf("num_leaf_large: %d\n", num_leaf_large);
   printf("max_leaf_size: %d\n", max_leaf_size);
+#endif
+#if THREAD
+  // Stop background worker first
+  if (global_worker) {
+    stop_background_worker(global_worker);
+    global_worker = NULL;
+  }
+
+  // Clean up lock table
+  if (global_lock_table) {
+    destroy_lock_table(global_lock_table);
+    global_lock_table = NULL;
+  }
+
+  pthread_rwlock_destroy(&t->tree_lock);
 #endif
   return 0;
 }
@@ -442,6 +480,9 @@ static int leaf_matches(const art_leaf *n, const unsigned char *key,
  * the value pointer is returned.
  */
 void *art_search(const art_tree *t, const unsigned char *key, int key_len) {
+#if THREAD
+  return art_search_optimistic(t, key, key_len);
+#else
   art_node **child;
   art_node *n = t->root;
   int prefix_len, depth = 0;
@@ -495,6 +536,7 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len) {
     depth++;
   }
   return NULL;
+#endif // THREAD
 }
 
 // Find the minimum leaf under a node
@@ -1024,12 +1066,16 @@ RECURSE_SEARCH:;
  */
 void *art_insert(art_tree *t, const unsigned char *key, int key_len,
                  void *value) {
+#if THREAD
+  return art_insert_thread_safe(t, key, key_len, value);
+#else
   int old_val = 0;
   void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0,
                                &old_val, 1, 0);
   if (!old_val)
     t->size++;
   return old;
+#endif
 }
 
 /**
@@ -1296,6 +1342,9 @@ static art_leaf *recursive_delete(art_node *n, art_node **ref,
  * the value pointer is returned.
  */
 void *art_delete(art_tree *t, const unsigned char *key, int key_len) {
+#if THREAD
+  return art_delete_thread_safe(t, key, key_len);
+#else
   art_leaf *l = recursive_delete(t->root, &t->root, key, key_len, 0);
   if (l) {
     t->size--;
@@ -1307,6 +1356,7 @@ void *art_delete(art_tree *t, const unsigned char *key, int key_len) {
     return old;
   }
   return NULL;
+#endif
 }
 
 // Recursively iterates over the tree
@@ -1819,4 +1869,409 @@ static node_allocator *find_leaf_allocator(art_leaf *leaf) {
   }
   return NULL;
 }
+#endif
+
+#if THREAD
+// Global lock table
+lock_table_t *global_lock_table = NULL;
+background_worker_t *global_worker = NULL;
+
+// Internal search function (existing art_search logic)
+static void *art_search_internal(const art_tree *t, const unsigned char *key,
+                                 int key_len) {
+  art_node **child;
+  art_node *n = t->root;
+  int prefix_len, depth = 0;
+  while (n) {
+    // Might be a leaf
+    if (IS_LEAF(n)) {
+#if HIT_CNT_TOTAL
+      leaf_hit_cnt++;
+#endif
+      n = (art_node *)LEAF_RAW(n);
+      // Check if the expanded path matches
+      if (!leaf_matches((art_leaf *)n, key, key_len, depth)) {
+#if LEAF_CENTRIC
+        increment_leaf_access_count((art_leaf *)n);
+#endif
+        return ((art_leaf *)n)->value;
+      }
+      return NULL;
+    }
+#if HIT_CNT
+    n->hit_cnt++;
+#endif
+#if HIT_CNT_TOTAL
+    switch (n->type) {
+    case NODE4:
+      node4_hit_cnt++;
+      break;
+    case NODE16:
+      node16_hit_cnt++;
+      break;
+    case NODE48:
+      node48_hit_cnt++;
+      break;
+    case NODE256:
+      node256_hit_cnt++;
+      break;
+    }
+#endif
+
+    // Bail if the prefix does not match
+    if (n->partial_len) {
+      prefix_len = check_prefix(n, key, key_len, depth);
+      if (prefix_len != min(MAX_PREFIX_LEN, n->partial_len))
+        return NULL;
+      depth = depth + n->partial_len;
+    }
+
+    // Recursively search
+    child = find_child(n, key[depth]);
+    n = (child) ? *child : NULL;
+    depth++;
+  }
+  return NULL;
+}
+
+// Pessimistic read with locks
+static void *art_search_pessimistic(const art_tree *t, const unsigned char *key,
+                                    int key_len) {
+  pthread_rwlock_rdlock((pthread_rwlock_t *)&t->tree_lock);
+  void *result = art_search_internal(t, key, key_len);
+  pthread_rwlock_unlock((pthread_rwlock_t *)&t->tree_lock);
+  return result;
+}
+// Add optimistic read function
+void *art_search_optimistic(const art_tree *t, const unsigned char *key,
+                            int key_len) {
+  uint64_t version_before, version_after;
+  void *result;
+  int retries = 0;
+  const int max_retries = 10;
+
+  do {
+    // Read version before search
+    version_before = t->root ? t->root->version : 0;
+
+    // Perform the search
+    result = art_search_internal(t, key, key_len);
+
+    // Read version after search
+    version_after = t->root ? t->root->version : 0;
+
+    // If versions don't match, retry
+    if (version_before != version_after) {
+      retries++;
+      continue;
+    }
+
+    return result;
+  } while (retries < max_retries);
+
+  // Fall back to pessimistic read if too many retries
+  return art_search_pessimistic(t, key, key_len);
+}
+
+// Hash function for lock table
+static size_t hash_node_ptr(art_node *node) {
+  return (size_t)node % 1024; // Simple hash, adjust size as needed
+}
+
+// Create lock table
+lock_table_t *create_lock_table(size_t size) {
+  lock_table_t *table = malloc(sizeof(lock_table_t));
+  if (!table)
+    return NULL;
+
+  table->size = size;
+  table->buckets = calloc(size, sizeof(lock_entry_t *));
+  if (!table->buckets) {
+    free(table);
+    return NULL;
+  }
+
+  pthread_mutex_init(&table->table_lock, NULL);
+  return table;
+}
+
+// Destroy lock table
+void destroy_lock_table(lock_table_t *table) {
+  if (!table)
+    return;
+
+  pthread_mutex_lock(&table->table_lock);
+
+  for (size_t i = 0; i < table->size; i++) {
+    lock_entry_t *entry = table->buckets[i];
+    while (entry) {
+      lock_entry_t *next = entry->next;
+      pthread_rwlock_destroy(&entry->lock_info.node_lock);
+      pthread_rwlock_destroy(&entry->lock_info.parent_lock);
+      free(entry);
+      entry = next;
+    }
+  }
+
+  pthread_mutex_unlock(&table->table_lock);
+  pthread_mutex_destroy(&table->table_lock);
+  free(table->buckets);
+  free(table);
+}
+
+// Get or create lock info for a node
+art_node_lock_t *get_node_lock_info(art_node *node, lock_table_t *table) {
+  if (!node || !table)
+    return NULL;
+
+  size_t hash = hash_node_ptr(node);
+  size_t bucket = hash % table->size;
+
+  pthread_mutex_lock(&table->table_lock);
+
+  // Search for existing entry
+  lock_entry_t *entry = table->buckets[bucket];
+  while (entry) {
+    if (entry->node == node) {
+      pthread_mutex_unlock(&table->table_lock);
+      return &entry->lock_info;
+    }
+    entry = entry->next;
+  }
+
+  // Create new entry
+  entry = malloc(sizeof(lock_entry_t));
+  if (!entry) {
+    pthread_mutex_unlock(&table->table_lock);
+    return NULL;
+  }
+
+  entry->node = node;
+  entry->lock_info.parent = NULL; // Will be set when needed
+  pthread_rwlock_init(&entry->lock_info.node_lock, NULL);
+  pthread_rwlock_init(&entry->lock_info.parent_lock, NULL);
+
+  // Insert at head of bucket
+  entry->next = table->buckets[bucket];
+  table->buckets[bucket] = entry;
+
+  pthread_mutex_unlock(&table->table_lock);
+  return &entry->lock_info;
+}
+
+// Clean up locks for a node (called when node is destroyed)
+void cleanup_node_locks(art_node *node, lock_table_t *table) {
+  if (!node || !table)
+    return;
+
+  size_t hash = hash_node_ptr(node);
+  size_t bucket = hash % table->size;
+
+  pthread_mutex_lock(&table->table_lock);
+
+  lock_entry_t **prev = &table->buckets[bucket];
+  lock_entry_t *entry = table->buckets[bucket];
+
+  while (entry) {
+    if (entry->node == node) {
+      *prev = entry->next;
+      pthread_rwlock_destroy(&entry->lock_info.node_lock);
+      pthread_rwlock_destroy(&entry->lock_info.parent_lock);
+      free(entry);
+      break;
+    }
+    prev = &entry->next;
+    entry = entry->next;
+  }
+
+  pthread_mutex_unlock(&table->table_lock);
+}
+
+// Background worker thread function
+void *background_worker_thread(void *arg) {
+  background_worker_t *worker = (background_worker_t *)arg;
+
+  while (1) {
+    pthread_mutex_lock(&worker->worker_mutex);
+
+    // Wait for condition or check if should stop
+    while (!worker->should_stop) {
+      struct timespec ts;
+      clock_gettime(CLOCK_REALTIME, &ts);
+      ts.tv_sec += 1; // Sleep for 1 second
+
+      int ret = pthread_cond_timedwait(&worker->worker_cond,
+                                       &worker->worker_mutex, &ts);
+      if (ret == ETIMEDOUT) {
+        // Time to run sampling
+        break;
+      }
+    }
+
+    if (worker->should_stop) {
+      pthread_mutex_unlock(&worker->worker_mutex);
+      break;
+    }
+
+    pthread_mutex_unlock(&worker->worker_mutex);
+
+    // Run sampling function
+    sampling(worker->tree, worker->lock_table);
+  }
+
+  return NULL;
+}
+
+// Start background worker
+background_worker_t *start_background_worker(art_tree *tree,
+                                             lock_table_t *lock_table) {
+  background_worker_t *worker = malloc(sizeof(background_worker_t));
+  if (!worker)
+    return NULL;
+
+  worker->tree = tree;
+  worker->lock_table = lock_table;
+  worker->should_stop = false;
+
+  pthread_mutex_init(&worker->worker_mutex, NULL);
+  pthread_cond_init(&worker->worker_cond, NULL);
+
+  if (pthread_create(&worker->worker_thread, NULL, background_worker_thread,
+                     worker) != 0) {
+    pthread_mutex_destroy(&worker->worker_mutex);
+    pthread_cond_destroy(&worker->worker_cond);
+    free(worker);
+    return NULL;
+  }
+
+  return worker;
+}
+
+// Stop background worker
+void stop_background_worker(background_worker_t *worker) {
+  if (!worker)
+    return;
+
+  pthread_mutex_lock(&worker->worker_mutex);
+  worker->should_stop = true;
+  pthread_cond_signal(&worker->worker_cond);
+  pthread_mutex_unlock(&worker->worker_mutex);
+
+  pthread_join(worker->worker_thread, NULL);
+
+  pthread_mutex_destroy(&worker->worker_mutex);
+  pthread_cond_destroy(&worker->worker_cond);
+  free(worker);
+}
+
+// Sampling function (you'll implement this based on your needs)
+void sampling(art_tree *tree, lock_table_t *lock_table) {
+  // Implement your sampling logic here
+  // This function should use atomic operations for shared state
+  // and avoid locks for performance
+
+  // Example: Update some statistics atomically
+  // __sync_fetch_and_add(&some_counter, 1);
+
+  // Example: Check for nodes that need migration
+  // This would traverse the tree and identify candidates
+  // for migration based on your criteria
+  printf("doing sampling\n");
+  sleep(2);
+}
+
+int migrate_node(art_tree *t, art_node *node, art_node *parent) {
+  art_node_lock_t *lock_info = get_node_lock_info(node, global_lock_table);
+  if (!lock_info)
+    return -1;
+
+  // Lock both node and parent
+  pthread_rwlock_wrlock(&lock_info->node_lock);
+  if (parent) {
+    pthread_rwlock_wrlock(&lock_info->parent_lock);
+  }
+
+  // Increment version to indicate migration start
+  node->version++;
+
+  // Perform migration logic here
+  // ... migration implementation ...
+
+  // Increment version again to indicate migration completion
+  node->version++;
+
+  // Unlock in reverse order
+  if (parent) {
+    pthread_rwlock_unlock(&lock_info->parent_lock);
+  }
+  pthread_rwlock_unlock(&lock_info->node_lock);
+
+  return 0;
+}
+
+// Thread-safe insert operation
+void *art_insert_thread_safe(art_tree *t, const unsigned char *key, int key_len,
+                             void *value) {
+  pthread_rwlock_wrlock(&t->tree_lock);
+
+  // Increment version before modification
+  if (t->root) {
+    t->root->version++;
+  }
+
+  int old_val = 0;
+  void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0,
+                               &old_val, 1, 0);
+  if (!old_val)
+    t->size++;
+
+  // Increment version after modification
+  if (t->root) {
+    t->root->version++;
+  }
+
+  pthread_rwlock_unlock(&t->tree_lock);
+  return old;
+}
+
+// Thread-safe delete operation
+void *art_delete_thread_safe(art_tree *t, const unsigned char *key,
+                             int key_len) {
+  pthread_rwlock_wrlock(&t->tree_lock);
+
+  // Increment version before modification
+  if (t->root) {
+    t->root->version++;
+  }
+
+  art_leaf *l = recursive_delete(t->root, &t->root, key, key_len, 0);
+  if (l) {
+    t->size--;
+    void *old = l->value;
+    free(l);
+#if CNT
+    leaf_cnt--;
+#endif
+    // Increment version after modification
+    if (t->root) {
+      t->root->version++;
+    }
+    pthread_rwlock_unlock(&t->tree_lock);
+    return old;
+  }
+
+  // Increment version after modification (even if no deletion)
+  if (t->root) {
+    t->root->version++;
+  }
+  pthread_rwlock_unlock(&t->tree_lock);
+  return NULL;
+}
+
+// Thread-safe search operation
+void *art_search_thread_safe(const art_tree *t, const unsigned char *key,
+                             int key_len) {
+  return art_search_optimistic(t, key, key_len);
+}
+
 #endif
