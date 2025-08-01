@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
 
   // measure ops perf
   clock_gettime(CLOCK_MONOTONIC, &t_start);
-  // measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
+  measure_ops_perf(&t, ops, ops_lens, ops_types, num_ops);
   // measure_ops_perf_threading(&t, ops, ops_lens, ops_types, num_ops);
   clock_gettime(CLOCK_MONOTONIC, &t_end);
   ops_ms = elapsed_ms(t_start, t_end);

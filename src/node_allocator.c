@@ -19,9 +19,9 @@ void register_allocator(node_allocator *na) {
 
   if (num_allocators < MAX_ALLOCATORS) {
     all_allocators[num_allocators++] = na;
-    fprintf(stdout, "curr allocator count: %zu\n", num_allocators);
+    // fprintf(stdout, "curr allocator count: %zu\n", num_allocators);
   } else {
-    fprintf(stderr, "Exceeded max allocators, curr: %zu\n", num_allocators);
+    // fprintf(stderr, "Exceeded max allocators, curr: %zu\n", num_allocators);
     abort();
   }
 }
@@ -55,8 +55,8 @@ void init_allocator(node_allocator *allocator, size_t capacity,
   }
   allocator->free_top = capacity;
   register_allocator(allocator);
-  //   printf("allocator init for node_size: %zu, allocator addr: %p\n",
-  //   node_size, allocator);
+  printf("allocator init for node_size: %zu, allocator addr: %p\n", node_size,
+         allocator);
 }
 
 void *alloc_node_cus(node_allocator *allocator) {

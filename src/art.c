@@ -28,21 +28,45 @@
 #if LEAF_CUS_ALLOC
 // email_workloadbigger_tail
 // #define NUM_LEAF_16 100
-// #define NUM_LEAF_24 200
-// #define NUM_LEAF_32 1716000
-// #define NUM_LEAF_40 7388000
-// #define NUM_LEAF_48 839000
-// #define NUM_LEAF_54 57000
+// #define NUM_LEAF_24 600
+// #define NUM_LEAF_32 2181000
+// #define NUM_LEAF_40 8745000
+// #define NUM_LEAF_48 1069000
+// #define NUM_LEAF_54 75000
+// #define NUM_LEAF_60 10
+// #define NUM_LEAF_LARGE 10
+
+// email_workloadbigger_tail w/ extra field
+// #define NUM_LEAF_16 10
+// #define NUM_LEAF_24 10
+// #define NUM_LEAF_32 600
+// #define NUM_LEAF_40 2181000
+// #define NUM_LEAF_48 8745000
+// #define NUM_LEAF_54 1004000
+// #define NUM_LEAF_60 140000
+// #define NUM_LEAF_LARGE 10
+
 // email_workloadc_ext_10
+// #define NUM_LEAF_16 10
+// #define NUM_LEAF_24 3000
+// #define NUM_LEAF_32 38000
+// #define NUM_LEAF_40 20849000
+// #define NUM_LEAF_48 66232357
+// #define NUM_LEAF_54 26300000
+// #define NUM_LEAF_60 5517000
+// #define NUM_LEAF_LARGE 639000
+
+// email_workloadc_ext_10 w/ extra field
 #define NUM_LEAF_16 10
-#define NUM_LEAF_24 3000
-#define NUM_LEAF_32 38000
-#define NUM_LEAF_40 20849000
-#define NUM_LEAF_48 66232357
-#define NUM_LEAF_54 26300000
-#define NUM_LEAF_60 5517000
-#define NUM_LEAF_66 639000
-#endif
+#define NUM_LEAF_24 10
+#define NUM_LEAF_32 3000
+#define NUM_LEAF_40 38000
+#define NUM_LEAF_48 20849000
+#define NUM_LEAF_54 49924000
+#define NUM_LEAF_60 37125000
+#define NUM_LEAF_LARGE 11631000
+#endif // LEAF_CUS_ALLOC
+
 #if LEAF_DISTRIBUTION
 int num_leaf_16;
 int num_leaf_24;
@@ -51,7 +75,7 @@ int num_leaf_40;
 int num_leaf_48;
 int num_leaf_54;
 int num_leaf_60;
-int num_leaf_above;
+int num_leaf_large;
 int max_leaf_size;
 #endif
 /**
@@ -141,7 +165,7 @@ int art_tree_init(art_tree *t) {
   init_allocator(&na_leaf_48, NUM_LEAF_48, 48, 0);
   init_allocator(&na_leaf_54, NUM_LEAF_54, 54, 0);
   init_allocator(&na_leaf_60, NUM_LEAF_60, 60, 0);
-  init_allocator(&na_leaf_66, NUM_LEAF_66, 66, 0);
+  init_allocator(&na_leaf_large, NUM_LEAF_LARGE, 72, 0);
   register_allocator(&na_leaf_16);
   register_allocator(&na_leaf_24);
   register_allocator(&na_leaf_32);
@@ -149,7 +173,7 @@ int art_tree_init(art_tree *t) {
   register_allocator(&na_leaf_48);
   register_allocator(&na_leaf_54);
   register_allocator(&na_leaf_60);
-  register_allocator(&na_leaf_66);
+  register_allocator(&na_leaf_large);
 #endif
 
   return 0;
@@ -265,7 +289,7 @@ int art_tree_destroy(art_tree *t) {
   destroy_allocator(&na_leaf_48);
   destroy_allocator(&na_leaf_54);
   destroy_allocator(&na_leaf_60);
-  destroy_allocator(&na_leaf_66);
+  destroy_allocator(&na_leaf_large);
 #endif
 #if LEAF_DISTRIBUTION
   printf("num_leaf_16: %d\n", num_leaf_16);
@@ -275,7 +299,7 @@ int art_tree_destroy(art_tree *t) {
   printf("num_leaf_48: %d\n", num_leaf_48);
   printf("num_leaf_54: %d\n", num_leaf_54);
   printf("num_leaf_60: %d\n", num_leaf_60);
-  printf("num_leaf_above: %d\n", num_leaf_above);
+  printf("num_leaf_large: %d\n", num_leaf_large);
   printf("max_leaf_size: %d\n", max_leaf_size);
 #endif
   return 0;
@@ -430,6 +454,9 @@ void *art_search(const art_tree *t, const unsigned char *key, int key_len) {
       n = (art_node *)LEAF_RAW(n);
       // Check if the expanded path matches
       if (!leaf_matches((art_leaf *)n, key, key_len, depth)) {
+#if LEAF_CENTRIC
+        increment_leaf_access_count((art_leaf *)n);
+#endif
         return ((art_leaf *)n)->value;
       }
       return NULL;
@@ -558,7 +585,7 @@ static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value) {
   else if (total_size <= 60)
     num_leaf_60++;
   else {
-    num_leaf_above++;
+    num_leaf_large++;
     if (total_size > max_leaf_size)
       max_leaf_size = total_size;
   }
@@ -574,6 +601,10 @@ static art_leaf *make_leaf(const unsigned char *key, int key_len, void *value) {
   l->value = value;
   l->key_len = key_len;
   memcpy(l->key, key, key_len);
+#if LEAF_CENTRIC
+  // Initialize access count to 0 and parent pointer to NULL
+  l->acc_parent_compact = 0;
+#endif
 #if CNT
   leaf_cnt++;
 #endif
@@ -842,7 +873,12 @@ static void *recursive_insert(art_node *n, art_node **ref,
                               uint16_t logical_depth) {
   // If we are at a NULL node, inject a leaf
   if (!n) {
-    *ref = (art_node *)SET_LEAF(make_leaf(key, key_len, value));
+    // *ref = (art_node *)SET_LEAF(make_leaf(key, key_len, value)); // orig code
+    art_leaf *leaf = make_leaf(key, key_len, value);
+#if LEAF_CENTRIC
+    set_leaf_parent_ptr(leaf, (art_node *)ref);
+#endif
+    *ref = (art_node *)SET_LEAF(leaf);
     return NULL;
   }
 
@@ -857,8 +893,12 @@ static void *recursive_insert(art_node *n, art_node **ref,
     if (!leaf_matches(l, key, key_len, depth)) {
       *old = 1;
       void *old_val = l->value;
-      if (replace)
+      if (replace) {
         l->value = value;
+#if LEAF_CENTRIC
+        increment_leaf_access_count(l);
+#endif
+      }
       return old_val;
     }
 
@@ -869,6 +909,9 @@ static void *recursive_insert(art_node *n, art_node **ref,
 #endif
     // Create a new leaf
     art_leaf *l2 = make_leaf(key, key_len, value);
+#if LEAF_CENTRIC
+    set_leaf_parent_ptr(l2, (art_node *)ref);
+#endif
 
     // Determine longest prefix
     int longest_prefix = longest_common_prefix(l, l2, depth);
@@ -940,6 +983,9 @@ static void *recursive_insert(art_node *n, art_node **ref,
 
     // Insert the new leaf
     art_leaf *l = make_leaf(key, key_len, value);
+#if LEAF_CENTRIC
+    set_leaf_parent_ptr(l, (art_node *)ref);
+#endif
     add_child4(new_node, ref, key[depth + prefix_diff], SET_LEAF(l));
 #if DEPTH
     decrement_depth(n);
@@ -960,6 +1006,9 @@ RECURSE_SEARCH:;
 
   // No child, node goes within us
   art_leaf *l = make_leaf(key, key_len, value);
+#if LEAF_CENTRIC
+  set_leaf_parent_ptr(l, (art_node *)ref);
+#endif
   add_child(n, ref, key[depth], SET_LEAF(l));
   return NULL;
 }
@@ -1720,7 +1769,7 @@ void node_cnt_stat() {
 #if LEAF_CUS_ALLOC
 // Leaf size class thresholds (in bytes)
 static const size_t leaf_size_thresholds[LEAF_SIZE_CLASSES] = {
-    16, 24, 32, 40, 48, 54, 60, 66, SIZE_MAX};
+    16, 24, 32, 40, 48, 54, 60, 72, SIZE_MAX};
 
 // Get the appropriate size class for a leaf
 static int get_leaf_size_class(size_t total_size) {
@@ -1750,7 +1799,7 @@ static node_allocator *get_leaf_allocator(int size_class) {
   case 6:
     return &na_leaf_60;
   case 7:
-    return &na_leaf_66;
+    return &na_leaf_large;
   default:
     printf("too large size class: %d\n", size_class);
     abort();

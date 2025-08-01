@@ -30,13 +30,14 @@ extern "C" {
 
 #define CUS_ALLOC 1         // custom allocator for inner nodes
 #define LEAF_CUS_ALLOC 1    // custom allocator for leaf nodes
-#define LEAF_DISTRIBUTION 0 // show leaf_lens distribution
+#define LEAF_DISTRIBUTION 1 // show leaf_lens distribution
 #define CNT 0               // bookkeep node count
-#define HIT_CNT_TOTAL 0     // bookkeep hit count
+#define HIT_CNT_TOTAL 0     // bookkeep total hit count
 #define BOOKKEEP 1          // add metadata for inner nodes
-#define HIT_CNT 0           // bookkeep hit_cnt
+#define HIT_CNT 0           // bookkeep hit_cnt for each inner node
 #define DEPTH 0             // bookkeep depth
 #define SELF_REF 0          // bookkeep pointer to parent's children slot
+#define LEAF_CENTRIC 1      // leaf-centric sampling, extra field
 
 #if BOOKKEEP
 #define PTR_MASK ((1ULL << 48) - 1)
@@ -128,6 +129,9 @@ typedef struct {
 typedef struct {
   void *value;
   uint32_t key_len;
+#if LEAF_CENTRIC
+  uint64_t acc_parent_compact;
+#endif
   unsigned char key[];
 } art_leaf;
 
@@ -266,14 +270,14 @@ node_allocator na_node256;
 #endif
 #if LEAF_CUS_ALLOC
 #define LEAF_SIZE_CLASSES 9
-node_allocator na_leaf_16; // 9-16 bytes
-node_allocator na_leaf_24; // 17-24 bytes
-node_allocator na_leaf_32; // 25-32 bytes
-node_allocator na_leaf_40; // 33-40 bytes
-node_allocator na_leaf_48; // 41-48 bytes
-node_allocator na_leaf_54; // 49-54 bytes
-node_allocator na_leaf_60; // 55-60 bytes
-node_allocator na_leaf_66; // 61-66 bytes
+node_allocator na_leaf_16;    // 9-16 bytes
+node_allocator na_leaf_24;    // 17-24 bytes
+node_allocator na_leaf_32;    // 25-32 bytes
+node_allocator na_leaf_40;    // 33-40 bytes
+node_allocator na_leaf_48;    // 41-48 bytes
+node_allocator na_leaf_54;    // 49-54 bytes
+node_allocator na_leaf_60;    // 55-60 bytes
+node_allocator na_leaf_large; // 61-72 bytes
 static int get_leaf_size_class(size_t total_size);
 static node_allocator *get_leaf_allocator(int size_class);
 static node_allocator *find_leaf_allocator(art_leaf *leaf);
@@ -336,7 +340,7 @@ static inline void set_is_local(art_node *n, bool is_local) {
 static inline bool get_is_local(art_node *n) {
   return (bool)((n->loc_depth_ptr >> IS_LOCAL_SHIFT) & IS_LOCAL_MASK);
 }
-#endif
+#endif // BOOKKEEP
 
 #if DEPTH
 static void increment_subtree_depth(art_node *n);
@@ -348,6 +352,32 @@ static inline void refresh_self_refs(art_node *n, int start, int end);
 static void fix_children_self_ref(void **children, int count);
 void dump_self_ref_json(FILE *out, art_node *n, void *parent_child_ptr);
 #endif
+
+#if LEAF_CENTRIC
+// Getter and setter for acc_parent_compact field
+static inline uint64_t get_leaf_access_count(art_leaf *leaf) {
+  return (leaf->acc_parent_compact >> 48) & 0xFFFF;
+}
+
+static inline void set_leaf_access_count(art_leaf *leaf, uint64_t count) {
+  leaf->acc_parent_compact =
+      (leaf->acc_parent_compact & 0xFFFFFFFFFFFF) | ((count & 0xFFFF) << 48);
+}
+
+static inline void increment_leaf_access_count(art_leaf *leaf) {
+  uint64_t current_count = get_leaf_access_count(leaf);
+  set_leaf_access_count(leaf, current_count + 1);
+}
+
+static inline art_node *get_leaf_parent_ptr(art_leaf *leaf) {
+  return (art_node *)(leaf->acc_parent_compact & 0xFFFFFFFFFFFF);
+}
+
+static inline void set_leaf_parent_ptr(art_leaf *leaf, art_node *parent) {
+  leaf->acc_parent_compact = (leaf->acc_parent_compact & 0xFFFF000000000000) |
+                             ((uint64_t)parent & 0xFFFFFFFFFFFF);
+}
+#endif // LEAF_CENTRIC
 
 #ifdef __cplusplus
 }
