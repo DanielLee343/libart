@@ -132,7 +132,8 @@ static art_node *alloc_node(uint8_t type) {
   }
   n->type = type;
 #if THREAD
-  n->version = 0; // Initialize version
+  set_node_version(n, 0);         // Initialize version to 0
+  set_migration_status(n, false); // Initialize migration status to false
 #endif
   return n;
 }
@@ -1876,12 +1877,42 @@ static node_allocator *find_leaf_allocator(art_leaf *leaf) {
 lock_table_t *global_lock_table = NULL;
 background_worker_t *global_worker = NULL;
 
-// Internal search function (existing art_search logic)
-static void *art_search_internal(const art_tree *t, const unsigned char *key,
-                                 int key_len) {
+// Internal search function (existing art_search logic) - REMOVED, using
+// art_search_with_version_check instead
+
+// Pessimistic read with locks (fallback) - REMOVED DUPLICATE
+// Clean optimistic search with root-only versioning (fast path)
+void *art_search_optimistic(const art_tree *t, const unsigned char *key,
+                            int key_len) {
+  uint32_t version_before, version_after;
+  void *result;
+  int retries = 0;
+  const int max_retries = 10;
+
+  do {
+    // Root-only versioning - much faster!
+    version_before = t->root ? FAST_GET_VERSION(t->root) : 0;
+    result = art_search_internal(t, key, key_len);
+    version_after = t->root ? FAST_GET_VERSION(t->root) : 0;
+
+    if (version_before != version_after) {
+      retries++;
+      continue;
+    }
+    return result;
+  } while (retries < max_retries);
+
+  // Fall back to pessimistic read if too many retries
+  return art_search_pessimistic(t, key, key_len);
+}
+
+// Internal search function (no version checking - fast)
+void *art_search_internal(const art_tree *t, const unsigned char *key,
+                          int key_len) {
   art_node **child;
   art_node *n = t->root;
   int prefix_len, depth = 0;
+
   while (n) {
     // Might be a leaf
     if (IS_LEAF(n)) {
@@ -1934,7 +1965,7 @@ static void *art_search_internal(const art_tree *t, const unsigned char *key,
   return NULL;
 }
 
-// Pessimistic read with locks
+// Pessimistic read with locks (fallback)
 static void *art_search_pessimistic(const art_tree *t, const unsigned char *key,
                                     int key_len) {
   pthread_rwlock_rdlock((pthread_rwlock_t *)&t->tree_lock);
@@ -1942,36 +1973,11 @@ static void *art_search_pessimistic(const art_tree *t, const unsigned char *key,
   pthread_rwlock_unlock((pthread_rwlock_t *)&t->tree_lock);
   return result;
 }
-// Add optimistic read function
-void *art_search_optimistic(const art_tree *t, const unsigned char *key,
-                            int key_len) {
-  uint64_t version_before, version_after;
-  void *result;
-  int retries = 0;
-  const int max_retries = 10;
 
-  do {
-    // Read version before search
-    version_before = t->root ? t->root->version : 0;
-
-    // Perform the search
-    result = art_search_internal(t, key, key_len);
-
-    // Read version after search
-    version_after = t->root ? t->root->version : 0;
-
-    // If versions don't match, retry
-    if (version_before != version_after) {
-      retries++;
-      continue;
-    }
-
-    return result;
-  } while (retries < max_retries);
-
-  // Fall back to pessimistic read if too many retries
-  return art_search_pessimistic(t, key, key_len);
-}
+// Migration detection function - REMOVED (unused dead code)
+// The current implementation uses root-only versioning for all operations
+// and relies on the migration status bit in the version field for migration
+// detection
 
 // Hash function for lock table
 static size_t hash_node_ptr(art_node *node) {
@@ -2164,19 +2170,33 @@ void stop_background_worker(background_worker_t *worker) {
   free(worker);
 }
 
-// Sampling function (you'll implement this based on your needs)
+// Sampling function with atomic operations for background workers
 void sampling(art_tree *tree, lock_table_t *lock_table) {
-  // Implement your sampling logic here
-  // This function should use atomic operations for shared state
-  // and avoid locks for performance
+  // Background workers use atomic operations (e.g., CAS) to access shared state
+  // No locks needed for shared state access
 
-  // Example: Update some statistics atomically
-  // __sync_fetch_and_add(&some_counter, 1);
+  // Example: Atomic parameter updates
+  static uint64_t migration_count = 0;
+  static uint64_t node_count = 0;
 
-  // Example: Check for nodes that need migration
-  // This would traverse the tree and identify candidates
-  // for migration based on your criteria
-  printf("doing sampling\n");
+  // Atomic increment of counters
+  __sync_fetch_and_add(&migration_count, 1);
+  __sync_fetch_and_add(&node_count, 1);
+
+  // Example: Atomic histogram updates
+  static uint64_t node_type_histogram[4] = {
+      0}; // NODE4, NODE16, NODE48, NODE256
+
+  // Atomic histogram update (example for NODE4)
+  __sync_fetch_and_add(&node_type_histogram[0], 1);
+
+  // Example: Check for nodes that need migration using atomic operations
+  // This would traverse the tree and identify candidates for migration
+  // based on access patterns, node size, etc.
+  
+
+  printf("doing sampling - migration_count: %lu, node_count: %lu\n",
+         migration_count, node_count);
   sleep(2);
 }
 
@@ -2185,20 +2205,22 @@ int migrate_node(art_tree *t, art_node *node, art_node *parent) {
   if (!lock_info)
     return -1;
 
-  // Lock both node and parent
+  // Lock both node and parent (per-node locking for migrations)
   pthread_rwlock_wrlock(&lock_info->node_lock);
   if (parent) {
     pthread_rwlock_wrlock(&lock_info->parent_lock);
   }
 
-  // Increment version to indicate migration start
-  node->version++;
+  // Set migration status and increment per-node version (migration-specific)
+  node->version ^= MIGRATION_STATUS_BIT; // Flip migration bit
+  FAST_INCREMENT_VERSION(node);          // Increment per-node version
 
   // Perform migration logic here
   // ... migration implementation ...
 
-  // Increment version again to indicate migration completion
-  node->version++;
+  // Increment per-node version and clear migration status
+  FAST_INCREMENT_VERSION(node);          // Increment per-node version
+  node->version ^= MIGRATION_STATUS_BIT; // Flip migration bit back
 
   // Unlock in reverse order
   if (parent) {
@@ -2209,14 +2231,16 @@ int migrate_node(art_tree *t, art_node *node, art_node *parent) {
   return 0;
 }
 
-// Thread-safe insert operation
+// Thread-safe insert operation with root-only versioning (consistent with
+// reads)
 void *art_insert_thread_safe(art_tree *t, const unsigned char *key, int key_len,
                              void *value) {
   pthread_rwlock_wrlock(&t->tree_lock);
 
-  // Increment version before modification
+  // Increment root version before modification (consistent with read
+  // versioning)
   if (t->root) {
-    t->root->version++;
+    FAST_INCREMENT_VERSION(t->root);
   }
 
   int old_val = 0;
@@ -2225,23 +2249,25 @@ void *art_insert_thread_safe(art_tree *t, const unsigned char *key, int key_len,
   if (!old_val)
     t->size++;
 
-  // Increment version after modification
+  // Increment root version after modification (consistent with read versioning)
   if (t->root) {
-    t->root->version++;
+    FAST_INCREMENT_VERSION(t->root);
   }
 
   pthread_rwlock_unlock(&t->tree_lock);
   return old;
 }
 
-// Thread-safe delete operation
+// Thread-safe delete operation with root-only versioning (consistent with
+// reads)
 void *art_delete_thread_safe(art_tree *t, const unsigned char *key,
                              int key_len) {
   pthread_rwlock_wrlock(&t->tree_lock);
 
-  // Increment version before modification
+  // Increment root version before modification (consistent with read
+  // versioning)
   if (t->root) {
-    t->root->version++;
+    FAST_INCREMENT_VERSION(t->root);
   }
 
   art_leaf *l = recursive_delete(t->root, &t->root, key, key_len, 0);
@@ -2252,17 +2278,18 @@ void *art_delete_thread_safe(art_tree *t, const unsigned char *key,
 #if CNT
     leaf_cnt--;
 #endif
-    // Increment version after modification
+    // Increment root version after modification (consistent with read
+    // versioning)
     if (t->root) {
-      t->root->version++;
+      FAST_INCREMENT_VERSION(t->root);
     }
     pthread_rwlock_unlock(&t->tree_lock);
     return old;
   }
 
-  // Increment version after modification (even if no deletion)
+  // Increment root version after modification (even if no deletion)
   if (t->root) {
-    t->root->version++;
+    FAST_INCREMENT_VERSION(t->root);
   }
   pthread_rwlock_unlock(&t->tree_lock);
   return NULL;

@@ -32,7 +32,7 @@ extern "C" {
 
 #define CUS_ALLOC 1         // custom allocator for inner nodes
 #define LEAF_CUS_ALLOC 1    // custom allocator for leaf nodes
-#define LEAF_DISTRIBUTION 1 // show leaf_lens distribution
+#define LEAF_DISTRIBUTION 0 // show leaf_lens distribution
 #define CNT 0               // bookkeep node count
 #define HIT_CNT_TOTAL 0     // bookkeep total hit count
 #define BOOKKEEP 1          // add metadata for inner nodes
@@ -75,10 +75,10 @@ typedef int (*art_callback)(void *data, const unsigned char *key,
  * of all the various node sizes
  */
 typedef struct {
-  uint32_t partial_len;
-  uint8_t type;
-  uint8_t num_children;
-  unsigned char partial[MAX_PREFIX_LEN];
+  uint32_t partial_len;                  // 4
+  uint8_t type;                          // 1
+  uint8_t num_children;                  // 1
+  unsigned char partial[MAX_PREFIX_LEN]; // 10
 #if BOOKKEEP
   // |63         60|59       |58         48|47          0|
   // |  unused (4) |is_local |  depth(11)  |  ptr (48b)  |
@@ -88,9 +88,48 @@ typedef struct {
   uint16_t hit_cnt; // 2
 #endif
 #if THREAD
-  uint64_t version; // 8
+  uint32_t
+      version; // 4 bytes - version for optimistic reads + migration status bit
 #endif
 } art_node;
+
+#if THREAD
+// Version field layout: |31 bits version|1 bit migration status|
+#define VERSION_MASK ((1U << 31) - 1)   // 31 bits for version
+#define MIGRATION_STATUS_BIT (1U << 31) // 1 bit for migration status
+
+// Version manipulation macros
+static inline uint32_t get_node_version(art_node *n) {
+  return n->version & VERSION_MASK;
+}
+
+static inline void set_node_version(art_node *n, uint32_t version) {
+  n->version = (n->version & MIGRATION_STATUS_BIT) | (version & VERSION_MASK);
+}
+
+static inline void increment_node_version(art_node *n) {
+  uint32_t current_version = get_node_version(n);
+  set_node_version(n, current_version + 1);
+}
+
+static inline bool get_migration_status(art_node *n) {
+  return (n->version & MIGRATION_STATUS_BIT) != 0;
+}
+
+static inline void set_migration_status(art_node *n, bool migrating) {
+  if (migrating) {
+    n->version |= MIGRATION_STATUS_BIT;
+  } else {
+    n->version &= ~MIGRATION_STATUS_BIT;
+  }
+}
+// Fast version access macros
+#define FAST_GET_VERSION(n) ((n)->version & VERSION_MASK)
+#define FAST_GET_MIGRATION(n) (((n)->version & MIGRATION_STATUS_BIT) != 0)
+#define FAST_INCREMENT_VERSION(n)                                              \
+  ((n)->version = ((n)->version & MIGRATION_STATUS_BIT) |                      \
+                  (((n)->version & VERSION_MASK) + 1))
+#endif // THREAD
 
 /**
  * Small node with only 4 children
@@ -208,11 +247,15 @@ void *art_search_thread_safe(const art_tree *t, const unsigned char *key,
                              int key_len);
 void *art_search_optimistic(const art_tree *t, const unsigned char *key,
                             int key_len);
+void *art_search_internal(const art_tree *t, const unsigned char *key,
+                          int key_len);
+static void *art_search_pessimistic(const art_tree *t, const unsigned char *key,
+                                    int key_len);
 
 // Global variables (extern declarations)
 extern lock_table_t *global_lock_table;
 extern background_worker_t *global_worker;
-#endif
+#endif // THREAD
 
 /**
  * Initializes an ART tree
