@@ -2330,23 +2330,47 @@ uint32_t get_frequency_bin(uint32_t frequency) {
   return bin;
 }
 
-// Update leaf access frequency in histogram (called by migration trigger)
+// Update leaf access frequency in histogram by traversing all leaf memory regions
 void update_leaf_access_frequency(art_leaf *leaf) {
-  uint32_t current_freq = get_leaf_access_count(leaf);
-  uint32_t old_bin = get_frequency_bin(current_freq);
+  // Reset histogram bins
+  memset(global_histogram.bins, 0, sizeof(global_histogram.bins));
+  global_histogram.total_leaves = 0;
 
-  // Increment access count
-  increment_leaf_access_count(leaf);
+  // Traverse all 8 leaf memory regions
+  node_allocator *leaf_allocators[] = {
+    &na_leaf_16,    // 9-16 bytes
+    &na_leaf_24,    // 17-24 bytes
+    &na_leaf_32,    // 25-32 bytes
+    &na_leaf_40,    // 33-40 bytes
+    &na_leaf_48,    // 41-48 bytes
+    &na_leaf_54,    // 49-54 bytes
+    &na_leaf_60,    // 55-60 bytes
+    &na_leaf_large  // 61-72 bytes
+  };
 
-  uint32_t new_freq = get_leaf_access_count(leaf);
-  uint32_t new_bin = get_frequency_bin(new_freq);
-
-  // Update histogram bins
-  if (old_bin < HISTOGRAM_BINS) {
-    global_histogram.bins[old_bin]--;
-  }
-  if (new_bin < HISTOGRAM_BINS) {
-    global_histogram.bins[new_bin]++;
+  // Process each leaf allocator
+  for (int i = 0; i < 8; i++) {
+    node_allocator *allocator = leaf_allocators[i];
+    
+    // Sequential scan through the allocated region
+    for (size_t j = 0; j < allocator->capacity; j++) {
+      // Check if this slot is allocated (used)
+      if (allocator->bitmap[j] == 1) {
+        // Calculate pointer to the leaf object
+        art_leaf *leaf_ptr = (art_leaf *)((char *)allocator->base_addr + j * allocator->node_size);
+        
+        // Get access count for this leaf
+        uint32_t access_count = get_leaf_access_count(leaf_ptr);
+        
+        // Update histogram bin
+        uint32_t bin = get_frequency_bin(access_count);
+        if (bin < HISTOGRAM_BINS) {
+          global_histogram.bins[bin]++;
+        }
+        
+        global_histogram.total_leaves++;
+      }
+    }
   }
 
   // Increment operation count for cooling
