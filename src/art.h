@@ -40,6 +40,7 @@ extern "C" {
 #define DEPTH 0             // bookkeep depth
 #define SELF_REF 0          // bookkeep pointer to parent's children slot
 #define LEAF_CENTRIC 1      // leaf-centric sampling, extra field
+#define HISTOGRAM 1         // historgram tracking
 #define THREAD 1            // concurrency control with versioning
 
 #if BOOKKEEP
@@ -492,6 +493,38 @@ static inline void set_leaf_parent_ptr(art_leaf *leaf, art_node *parent) {
                              ((uint64_t)parent & 0xFFFFFFFFFFFF);
 }
 #endif // LEAF_CENTRIC
+
+#if HISTOGRAM
+#define HISTOGRAM_BINS 32          // Number of bins in logarithmic histogram
+#define DEFAULT_P_HOT 0.1          // 10% of leaves should be hot
+#define DEFAULT_P_COLD 0.3         // 30% of leaves should be cold
+#define COOLING_INTERVAL 1000      // Cool every 1000 operations
+#define MIN_ACCESS_FREQ 1          // Minimum access frequency
+#define MAX_ACCESS_FREQ 0x7FFFFFFF // Maximum access frequency (31 bits)
+
+// Logarithmic histogram for access frequency distribution
+typedef struct {
+  uint32_t bins[HISTOGRAM_BINS]; // Count of leaves in each frequency bin
+  uint32_t total_leaves;         // Total number of leaves
+  uint32_t hot_threshold;        // Thot - frequency threshold for hot leaves
+  uint32_t cold_threshold;       // Tcold - frequency threshold for cold leaves
+  uint32_t operation_count;      // Counter for cooling operations
+  double p_hot;                  // Phot - percentage of hot leaves
+  double p_cold;                 // Pcold - percentage of cold leaves
+} access_histogram_t;
+
+// Global histogram for the entire tree
+extern access_histogram_t global_histogram;
+
+// Function declarations for histogram management
+void init_access_histogram(void);
+void update_leaf_access_frequency(art_leaf *leaf);
+void cool_access_frequencies(void);
+void update_hot_cold_thresholds(void);
+uint32_t get_frequency_bin(uint32_t frequency);
+bool is_hot_leaf(art_leaf *leaf);
+bool is_cold_leaf(art_leaf *leaf);
+#endif // HISTOGRAM
 
 #ifdef __cplusplus
 }

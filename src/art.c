@@ -2173,9 +2173,6 @@ void stop_background_worker(background_worker_t *worker) {
 // Sampling function with atomic operations for background workers
 void sampling(art_tree *tree, lock_table_t *lock_table) {
   // Background workers use atomic operations (e.g., CAS) to access shared state
-  // No locks needed for shared state access
-
-  // Example: Atomic parameter updates
   static uint64_t migration_count = 0;
   static uint64_t node_count = 0;
 
@@ -2183,21 +2180,23 @@ void sampling(art_tree *tree, lock_table_t *lock_table) {
   __sync_fetch_and_add(&migration_count, 1);
   __sync_fetch_and_add(&node_count, 1);
 
-  // Example: Atomic histogram updates
-  static uint64_t node_type_histogram[4] = {
-      0}; // NODE4, NODE16, NODE48, NODE256
+  // Update total leaf count in histogram
+  global_histogram.total_leaves = leaf_cnt;
 
-  // Atomic histogram update (example for NODE4)
-  __sync_fetch_and_add(&node_type_histogram[0], 1);
+// Traverse tree to identify hot paths and cold nodes
+#if HISTOGRAM
+  identify_migration_candidates(tree);
 
-  // Example: Check for nodes that need migration using atomic operations
-  // This would traverse the tree and identify candidates for migration
-  // based on access patterns, node size, etc.
-  
+  // Perform actual migrations for identified candidates
+  perform_migrations(tree, lock_table);
+#endif
 
   printf("doing sampling - migration_count: %lu, node_count: %lu\n",
          migration_count, node_count);
-  sleep(2);
+  printf(
+      "histogram - hot_threshold: %u, cold_threshold: %u, total_leaves: %u\n",
+      global_histogram.hot_threshold, global_histogram.cold_threshold,
+      global_histogram.total_leaves);
 }
 
 int migrate_node(art_tree *t, art_node *node, art_node *parent) {
@@ -2301,4 +2300,133 @@ void *art_search_thread_safe(const art_tree *t, const unsigned char *key,
   return art_search_optimistic(t, key, key_len);
 }
 
-#endif
+#endif // THREAD
+
+#if HISTOGRAM
+// Global histogram
+access_histogram_t global_histogram;
+
+// Initialize the access histogram
+void init_access_histogram(void) {
+  memset(&global_histogram, 0, sizeof(access_histogram_t));
+  global_histogram.p_hot = DEFAULT_P_HOT;
+  global_histogram.p_cold = DEFAULT_P_COLD;
+  global_histogram.hot_threshold = 1;
+  global_histogram.cold_threshold = 1;
+}
+
+// Get the histogram bin for a given frequency (logarithmic scale)
+uint32_t get_frequency_bin(uint32_t frequency) {
+  if (frequency == 0)
+    return 0;
+
+  // Logarithmic binning: bin = log2(frequency)
+  uint32_t bin = 0;
+  uint32_t freq = frequency;
+  while (freq > 1 && bin < HISTOGRAM_BINS - 1) {
+    freq >>= 1;
+    bin++;
+  }
+  return bin;
+}
+
+// Update leaf access frequency in histogram (called by migration trigger)
+void update_leaf_access_frequency(art_leaf *leaf) {
+  uint32_t current_freq = get_leaf_access_count(leaf);
+  uint32_t old_bin = get_frequency_bin(current_freq);
+
+  // Increment access count
+  increment_leaf_access_count(leaf);
+
+  uint32_t new_freq = get_leaf_access_count(leaf);
+  uint32_t new_bin = get_frequency_bin(new_freq);
+
+  // Update histogram bins
+  if (old_bin < HISTOGRAM_BINS) {
+    global_histogram.bins[old_bin]--;
+  }
+  if (new_bin < HISTOGRAM_BINS) {
+    global_histogram.bins[new_bin]++;
+  }
+
+  // Increment operation count for cooling
+  global_histogram.operation_count++;
+
+  // Trigger cooling if needed
+  if (global_histogram.operation_count >= COOLING_INTERVAL) {
+    cool_access_frequencies();
+    update_hot_cold_thresholds();
+  }
+}
+// Cooler: halve all leaf access frequencies and shift histogram bins
+void cool_access_frequencies(void) {
+  // Reset operation count
+  global_histogram.operation_count = 0;
+
+  // Shift histogram bins to the left by one position (logarithmic reduction)
+  for (int i = 0; i < HISTOGRAM_BINS - 1; i++) {
+    global_histogram.bins[i] = global_histogram.bins[i + 1];
+  }
+  global_histogram.bins[HISTOGRAM_BINS - 1] = 0;
+
+  // Note: Actual leaf frequency halving would require tree traversal
+  // This is handled by the background worker during sampling
+}
+void update_hot_cold_thresholds(void) {
+  uint32_t target_hot_count =
+      (uint32_t)(global_histogram.total_leaves * global_histogram.p_hot);
+  uint32_t target_cold_count =
+      (uint32_t)(global_histogram.total_leaves * global_histogram.p_cold);
+
+  uint32_t cumulative_count = 0;
+
+  // Find Thot (from high to low frequency)
+  global_histogram.hot_threshold = 0;
+  for (int i = HISTOGRAM_BINS - 1; i >= 0; i--) {
+    cumulative_count += global_histogram.bins[i];
+    if (cumulative_count >= target_hot_count) {
+      global_histogram.hot_threshold = (1U << i); // Convert bin to frequency
+      break;
+    }
+  }
+
+  // Find Tcold (from low to high frequency)
+  cumulative_count = 0;
+  global_histogram.cold_threshold = 0;
+  for (int i = 0; i < HISTOGRAM_BINS; i++) {
+    cumulative_count += global_histogram.bins[i];
+    if (cumulative_count >= target_cold_count) {
+      global_histogram.cold_threshold = (1U << i); // Convert bin to frequency
+      break;
+    }
+  }
+}
+// Check if a leaf is hot (frequency > Thot)
+bool is_hot_leaf(art_leaf *leaf) {
+  uint32_t freq = get_leaf_access_count(leaf);
+  return freq > global_histogram.hot_threshold;
+}
+
+// Check if a leaf is cold (frequency < Tcold)
+bool is_cold_leaf(art_leaf *leaf) {
+  uint32_t freq = get_leaf_access_count(leaf);
+  return freq < global_histogram.cold_threshold;
+}
+
+// Identify migration candidates based on histogram
+static void identify_migration_candidates(art_tree *tree) {
+  // This would traverse the tree and identify candidates for migration
+  // based on access patterns, node size, etc.
+
+  // For hot paths: identify leaves with frequency > Thot
+  // For cold nodes: identify leaves with frequency < Tcold
+
+  // Store candidates for migration in a queue or list
+}
+
+// Perform migrations for identified candidates
+static void perform_migrations(art_tree *tree, lock_table_t *lock_table) {
+  // Process migration candidates
+  // Use migrate_node() function for each candidate
+}
+#endif // HISTOGRAM
